@@ -26,7 +26,7 @@ const composeFile = path.resolve(rootDirectory, "docker-compose.yml");
 const yakapDatabaseName = "yakap_db";
 const yakapDatabaseUser = "yakap";
 
-const plainTextPassword = "Password123!";
+const plainTextPassword = "password123";
 
 const users: UserSeed[] = [
   {

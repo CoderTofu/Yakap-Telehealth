@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 import { AppShell, type NavItem } from "@/components/shared/app-shell";
 import { YakapAvatar } from "@/components/shared/avatar";
@@ -39,10 +40,26 @@ const NAV: NavItem[] = [
 
 export default function PatientDashboard() {
   const router = useRouter();
-  const user = PATIENTS[0];
-  const shellUser = { name: user.name, role: "patient" as const };
+  const [user, setUser] = useState<any | null>();
   const [symptoms, setSymptoms] = useState("");
   const [recs, setRecs] = useState<DoctorSummary[]>([]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("authUser");
+      setUser(raw ? JSON.parse(raw) : null);
+    } catch (err) {
+      setUser(null);
+    }
+  }, []);
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-sm text-text-muted">Loading...</div>
+      </div>
+    );
+  }
 
   const upcoming = APPOINTMENTS.filter(
     (appointment) =>
@@ -78,7 +95,7 @@ export default function PatientDashboard() {
   }
 
   return (
-    <AppShell nav={NAV} user={shellUser} unread={2} onLogout={handleLogout}>
+    <AppShell nav={NAV} user={user} unread={2} onLogout={handleLogout}>
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>

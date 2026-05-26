@@ -20,7 +20,7 @@ declare global {
 const jwtSecret = process.env.JWT_SECRET || "dev-secret";
 
 export function issueAuthToken(user: AuthUser) {
-  return jwt.sign(user, jwtSecret, { subject: user.id, expiresIn: "7d" });
+  return jwt.sign(user, jwtSecret, { subject: user.id, expiresIn: "1d" });
 }
 
 export function auth(req: Request, res: Response, next: NextFunction) {

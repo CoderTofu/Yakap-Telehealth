@@ -9,7 +9,7 @@ export type CurrentUser = {
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   try {
-    const c = cookies().get("authUser")?.value;
+    const c = (await cookies()).get("authUser")?.value;
     if (!c) return null;
     const parsed = JSON.parse(decodeURIComponent(c)) as CurrentUser;
     return parsed;

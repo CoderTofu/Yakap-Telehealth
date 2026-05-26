@@ -1,7 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { Bell, LogOut, type LucideIcon } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Bell, LogOut, Menu, X, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "./logo";
@@ -51,6 +51,11 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const title = deriveTitle(pathname, nav);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [pathname]);
 
   const handleLogout = () => {
     onLogout?.();
@@ -58,9 +63,33 @@ export function AppShell({
 
   return (
     <div className="min-h-screen w-full bg-bg text-text-primary">
-      <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col border-r border-border bg-surface lg:flex">
+      {isSidebarOpen ? (
+        <button
+          type="button"
+          className="fixed inset-0 z-30 bg-black/30 lg:hidden"
+          aria-label="Close sidebar"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      ) : null}
+
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-border bg-surface transition-transform duration-200 ease-out lg:translate-x-0",
+          isSidebarOpen
+            ? "translate-x-0"
+            : "-translate-x-full lg:translate-x-0",
+        )}
+      >
         <div className="flex h-16 items-center border-b border-border px-5">
           <Logo />
+          <button
+            type="button"
+            onClick={() => setIsSidebarOpen(false)}
+            className="ml-auto rounded-md p-1.5 text-text-secondary hover:bg-muted hover:text-text-primary lg:hidden"
+            aria-label="Close sidebar"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4">
@@ -77,6 +106,7 @@ export function AppShell({
                   ) : null}
                   <Link
                     href={item.to}
+                    onClick={() => setIsSidebarOpen(false)}
                     className={cn(
                       "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                       isActive
@@ -120,7 +150,18 @@ export function AppShell({
 
       <div className="lg:pl-60">
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-border bg-surface/95 px-6 backdrop-blur">
-          <h1 className="font-serif text-2xl text-text-primary">{title}</h1>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsSidebarOpen((prev) => !prev)}
+              className="rounded-md p-2 text-text-secondary hover:bg-muted hover:text-text-primary lg:hidden"
+              aria-label="Toggle sidebar"
+              aria-expanded={isSidebarOpen}
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <h1 className="font-serif text-2xl text-text-primary">{title}</h1>
+          </div>
           <div className="flex items-center gap-4">
             <Link
               href={

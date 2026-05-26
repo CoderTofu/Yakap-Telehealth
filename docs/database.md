@@ -18,6 +18,24 @@ Inside Docker, the API talks to Postgres at `db:5432`.
 npm run docker:up
 ```
 
+### Using `docker-compose.override.yml` for development
+
+There is a `docker-compose.override.yml` provided for local development. The override file:
+
+- Adds bind mounts so your workspace files inside `apps/` are visible to containers (no rebuild required for code changes).
+- Runs the app in dev mode inside the container (e.g. `npm run dev`), enabling hot-reload or `ts-node-dev` restarts.
+
+To start services using the override file (recommended for development):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.override.yml up --build
+```
+
+Notes:
+- The override forwards ports and mounts project folders into containers. Use it when actively developing the API or web app.
+- If you prefer a clean production-like start without mounts, run `npm run docker:up` which uses only `docker-compose.yml`.
+
+
 This starts the `db` service from [docker-compose.yml](../docker-compose.yml).
 
 ## Schema Overview

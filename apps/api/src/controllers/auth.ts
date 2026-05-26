@@ -6,6 +6,7 @@ import {
   findUserByEmail,
   registerUser,
 } from "../services/auth";
+import { SPECIALTY_VALUES, USER_ROLES } from "../constants";
 
 export async function login(req: Request, res: Response) {
   const { email, password } = req.body as {
@@ -58,7 +59,7 @@ export async function register(req: Request, res: Response) {
   } = req.body as {
     email?: string;
     password?: string;
-    role?: "patient" | "doctor";
+    role?: string;
     name?: string;
     phone?: string;
     avatar_url?: string | null;
@@ -87,7 +88,12 @@ export async function register(req: Request, res: Response) {
     return res.status(409).json({ error: { message: "Email already exists" } });
   }
 
-  if (role !== "patient" && role !== "doctor") {
+  const normalizedRole = role?.trim();
+
+  if (
+    !normalizedRole ||
+    !USER_ROLES.includes(normalizedRole as (typeof USER_ROLES)[number])
+  ) {
     return res
       .status(400)
       .json({ error: { message: "Role must be patient or doctor" } });
@@ -105,13 +111,19 @@ export async function register(req: Request, res: Response) {
     return res.status(400).json({ error: { message: "Phone is required" } });
   }
 
-  if (role === "doctor") {
+  if (normalizedRole === "doctor") {
     const { specialization, license_number } = doctor_profile ?? {};
+    const normalizedSpecialization = specialization?.trim();
 
-    if (!specialization) {
+    if (
+      !normalizedSpecialization ||
+      !SPECIALTY_VALUES.includes(
+        normalizedSpecialization as (typeof SPECIALTY_VALUES)[number],
+      )
+    ) {
       return res
         .status(400)
-        .json({ error: { message: "Specialization is required" } });
+        .json({ error: { message: "Specialization must be one of the allowed options" } });
     }
 
     if (!license_number) {
@@ -124,7 +136,7 @@ export async function register(req: Request, res: Response) {
   const user = await registerUser({
     email,
     password,
-    role,
+    role: normalizedRole as "patient" | "doctor",
     name,
     phone,
     avatar_url,

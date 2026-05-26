@@ -50,6 +50,36 @@ The current schema is a small telehealth model:
 - `consultation_notes`: clinical notes written after an appointment
 - `notifications`: user-facing reminders and updates
 
+## Canonical Constants
+
+These values are intentionally duplicated in the app, API, and database layers so the UI, validation, and SQL all stay aligned.
+
+### Roles
+
+Current values: `patient`, `doctor`
+
+If you add or replace a role, update all of these places:
+
+- [apps/api/src/constants.ts](../apps/api/src/constants.ts) for API validation
+- [apps/api/src/controllers/auth.ts](../apps/api/src/controllers/auth.ts) for registration checks
+- [apps/web/src/app/register/page.tsx](../apps/web/src/app/register/page.tsx) for the role selector UI
+- [docker/init.sql](../docker/init.sql) for the SQL `CHECK` constraint
+- [apps/api/src/db/seed.ts](../apps/api/src/db/seed.ts) for seeded rows
+
+### Specializations
+
+Current values: `cardiology`, `dermatology`, `pediatrics`, `neurology`, `orthopedics`, `psychiatry`, `general medicine`, `ophthalmology`, `dentistry`, `gynecology`
+
+If you add or replace a specialization, update all of these places:
+
+- [apps/api/src/constants.ts](../apps/api/src/constants.ts) for API validation
+- [apps/web/src/components/shared/appConfig.tsx](../apps/web/src/components/shared/appConfig.tsx) for the display label and icon list
+- [apps/web/src/app/register/page.tsx](../apps/web/src/app/register/page.tsx) if the form needs different behavior
+- [docker/init.sql](../docker/init.sql) for the SQL `CHECK` constraint
+- [apps/api/src/db/seed.ts](../apps/api/src/db/seed.ts) for seeded doctor profiles
+
+Both `role` and `specialization` are case-sensitive in the SQL constraints and the API checks, so use the exact lowercase values above when inserting rows directly.
+
 ## Table Details
 
 ### `users`
@@ -59,7 +89,7 @@ Core account data for both roles.
 - `id` UUID primary key
 - `email` unique
 - `password_hash`
-- `role` must be `patient` or `doctor`
+- `role` must be exactly `patient` or `doctor` when inserted directly into the database
 - `name`, `phone`, `avatar_url`
 - `created_at`
 
@@ -76,11 +106,13 @@ One row per patient user.
 
 One row per doctor user.
 
-- `specialization`
+- `specialization` must be one of: `cardiology`, `dermatology`, `pediatrics`, `neurology`, `orthopedics`, `psychiatry`, `general medicine`, `ophthalmology`, `dentistry`, `gynecology`
 - `license_number` unique
 - `bio`
 - `years_exp`
 - `consultation_fee`
+
+Both `role` and `specialization` are case-sensitive in the raw SQL schema checks, so direct inserts must use the exact lowercase values above.
 
 ### `doctor_schedules`
 

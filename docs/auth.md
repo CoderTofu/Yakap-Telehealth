@@ -19,6 +19,8 @@ Authenticates a user with email and password, then returns a signed token.
 
 Both `email` and `password` are required.
 
+The `role` field is restricted to `patient` or `doctor`, and the same exact lowercase values are used throughout the API, UI, and database checks.
+
 #### Response
 
 ```json

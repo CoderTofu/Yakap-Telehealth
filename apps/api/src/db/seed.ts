@@ -2,6 +2,8 @@ import { randomUUID } from "crypto";
 import { spawnSync } from "child_process";
 import path from "path";
 
+import { SPECIALTY_VALUES } from "../constants";
+
 type UserSeed = {
   id: string;
   email: string;
@@ -118,7 +120,7 @@ const schemaStatements = [
   );`,
   `CREATE TABLE IF NOT EXISTS doctor_profiles (
     user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    specialization TEXT NOT NULL,
+    specialization TEXT NOT NULL CHECK (specialization IN (${SPECIALTY_VALUES.map((value) => `'${value}'`).join(", ")})),
     license_number TEXT NOT NULL UNIQUE,
     bio TEXT,
     years_exp INT,
@@ -246,7 +248,7 @@ function buildSeedSql() {
     VALUES
       (
         ${sqlLiteral(doctorUsers[0].id)},
-        ${sqlLiteral("Cardiology")},
+        ${sqlLiteral("cardiology")},
         ${sqlLiteral("PH-CRD-10293")},
         ${sqlLiteral("Focuses on preventive heart care and chronic disease management.")},
         ${sqlLiteral(12)},
@@ -254,7 +256,7 @@ function buildSeedSql() {
       ),
       (
         ${sqlLiteral(doctorUsers[1].id)},
-        ${sqlLiteral("Dermatology")},
+        ${sqlLiteral("dermatology")},
         ${sqlLiteral("PH-DERM-88921")},
         ${sqlLiteral("Treats acne, dermatitis, and long-term skin conditions.")},
         ${sqlLiteral(8)},

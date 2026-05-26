@@ -1,6 +1,7 @@
 import { compare, hash } from "bcryptjs";
 
 import pool from "../db/pool";
+import { SPECIALTY_VALUES } from "../constants";
 
 export type AuthUserRecord = {
   id: string;
@@ -118,12 +119,18 @@ export async function registerUser(input: RegisterUserInput) {
     }
 
     if (input.role === "doctor") {
-      const specialization = input.doctor_profile?.specialization;
+      const specialization = input.doctor_profile?.specialization?.trim();
       const licenseNumber = input.doctor_profile?.license_number;
 
-      if (!specialization || !licenseNumber) {
+      if (
+        !specialization ||
+        !SPECIALTY_VALUES.includes(
+          specialization as (typeof SPECIALTY_VALUES)[number],
+        ) ||
+        !licenseNumber
+      ) {
         throw new Error(
-          "Doctor specialization and license number are required",
+          "Doctor specialization must be one of the allowed options and license number is required",
         );
       }
 

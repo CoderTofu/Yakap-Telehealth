@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS patient_profiles (
 
 CREATE TABLE IF NOT EXISTS doctor_profiles (
 	user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-	specialization TEXT NOT NULL,
+	specialization TEXT NOT NULL CHECK (specialization IN ('cardiology', 'dermatology', 'pediatrics', 'neurology', 'orthopedics', 'psychiatry', 'general medicine', 'ophthalmology', 'dentistry', 'gynecology')),
 	license_number TEXT NOT NULL UNIQUE,
 	bio TEXT,
 	years_exp INT,

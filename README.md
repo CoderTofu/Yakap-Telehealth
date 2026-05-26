@@ -14,8 +14,6 @@ yakap/
 ├── apps/
 │   ├── web/          # Next.js frontend (port 3000)
 │   └── api/          # Express backend (port 4000)
-├── packages/
-│   └── shared/       # Shared types
 ├── docker/           # Docker init scripts
 └── docker-compose.yml
 ```
@@ -97,3 +95,7 @@ After connecting, expand `Schemas > public > Tables` to browse `users`, `patient
 | `npm run db:seed`     | Seed sample telehealth data |
 | `npm run build`       | Build all apps              |
 | `npm run type-check`  | TypeScript check all        |
+
+## Today's Implementation Notes
+
+For a full summary of the frontend and backend logic built and refactored today, see [docs/implementation-2026-05-26.md](docs/implementation-2026-05-26.md).

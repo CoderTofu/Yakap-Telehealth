@@ -1,6 +1,6 @@
 # Implementation Notes - 2026-05-26
 
-This document summarizes the frontend and backend logic built and refactored today.
+This document summarizes the frontend and backend logic built and refactored for May 26, 2026.
 
 ## Frontend Logic
 
@@ -159,3 +159,27 @@ Type-checks passed after the refactor:
 
 - `npm run type-check --workspace=apps/web`
 - `npm run type-check --workspace=apps/api`
+
+## Role-based access control (server + client)
+
+Files added/changed:
+
+- [apps/web/src/lib/auth.ts](../apps/web/src/lib/auth.ts): server-side helper which reads an `authUser` cookie (JSON) via `next/headers` and exposes `getCurrentUser()` for server components/layouts.
+- [apps/web/src/app/doctor/layout.tsx](../apps/web/src/app/doctor/layout.tsx): server `layout.tsx` that calls `getCurrentUser()` and redirects to `/login` when the user is missing or not a `doctor`.
+- [apps/web/src/app/patient/layout.tsx](../apps/web/src/app/patient/layout.tsx): server `layout.tsx` that calls `getCurrentUser()` and redirects to `/login` when the user is missing or not a `patient`.
+- [apps/web/src/app/login/page.tsx](../apps/web/src/app/login/page.tsx): mirrors `authToken` and `authUser` into document cookies on successful login (in addition to `localStorage`) so server layouts can read role on first render.
+- [apps/web/src/app/register/page.tsx](../apps/web/src/app/register/page.tsx): same cookie-mirroring on successful registration.
+- [apps/web/src/app/doctor/dashboard/page.tsx](../apps/web/src/app/doctor/dashboard/page.tsx): client fix — dashboard now reads `authUser` from `localStorage` in the client, adds a loading guard, and clears cookies on logout.
+
+Notes and rationale:
+
+- Server-side enforcement is primary: `layout.tsx` files intercept render for their route groups and redirect unauthorized users. This prevents direct URL access by the wrong role.
+- Client-side `localStorage` usage remains for UX; however, client checks are not relied on for security.
+- The current cookie-sync uses non-HttpOnly cookies set in the browser to make the user payload available to server components via `next/headers` for immediate redirects. Recommended next step: move cookie-setting into server API responses with `Set-Cookie` and use HttpOnly cookies for improved security.
+
+Next recommended tasks:
+
+- Replace client-set cookies with server-set HttpOnly `Set-Cookie` on the API login/register endpoints.
+- Add API middleware `requireRole(role)` to protect API routes server-side (e.g., `/api/v1/appointments/doctor/*`).
+- Hide/show navigation links client-side by reading `authUser` from `localStorage` or `/api/v1/auth/me`.
+

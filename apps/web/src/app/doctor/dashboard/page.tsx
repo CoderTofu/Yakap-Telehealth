@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { AppShell, type NavItem } from "@/components/shared/app-shell";
 import { YakapAvatar } from "@/components/shared/avatar";
@@ -24,6 +25,7 @@ import {
   getPatient,
 } from "@/lib/dashboard-data";
 
+// client-side: read authUser from localStorage
 const NAV: NavItem[] = [
   { to: "/doctor/dashboard", label: "Dashboard", icon: CalendarDays },
   { to: "/doctor/appointments", label: "Appointments", icon: ClipboardList },
@@ -34,7 +36,25 @@ const NAV: NavItem[] = [
 
 export default function DoctorDashboard() {
   const router = useRouter();
-  const user = DOCTORS[0];
+  const [user, setUser] = useState<any | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("authUser");
+      setUser(raw ? JSON.parse(raw) : null);
+    } catch (err) {
+      setUser(null);
+    }
+  }, []);
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-sm text-text-muted">Loading...</div>
+      </div>
+    );
+  }
+
   const shellUser = { name: user.name, role: "doctor" as const };
 
   const today = APPOINTMENTS.filter(
@@ -57,6 +77,13 @@ export default function DoctorDashboard() {
   function handleLogout() {
     localStorage.removeItem("authToken");
     localStorage.removeItem("authUser");
+    try {
+      // clear cookies set by login/register
+      document.cookie =
+        "authToken=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      document.cookie =
+        "authUser=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    } catch (_) {}
     router.push("/");
   }
 

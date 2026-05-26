@@ -81,6 +81,19 @@ export default function Login() {
       localStorage.setItem("authToken", data.data.token);
       localStorage.setItem("authUser", JSON.stringify(data.data.user));
 
+      // Mirror auth to cookies so server-side layouts can read role on first render
+      try {
+        const expires = new Date(
+          Date.now() + 7 * 24 * 60 * 60 * 1000,
+        ).toUTCString();
+        document.cookie = `authToken=${encodeURIComponent(data.data.token)}; Path=/; Expires=${expires}`;
+        document.cookie = `authUser=${encodeURIComponent(
+          JSON.stringify(data.data.user),
+        )}; Path=/; Expires=${expires}`;
+      } catch (_) {
+        // ignore in environments where document isn't available
+      }
+
       router.push(
         data.data.user.role === "patient"
           ? "/patient/dashboard"

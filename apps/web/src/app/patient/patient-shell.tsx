@@ -9,10 +9,12 @@ import {
   ClipboardList,
   FileText,
   UserRound,
+  Search,
 } from "lucide-react";
 
 const PATIENT_NAV: NavItem[] = [
   { to: "/patient/dashboard", label: "Dashboard", icon: CalendarDays },
+  { to: "/patient/doctors", label: "Find a Doctor", icon: Search },
   { to: "/patient/appointments", label: "Appointments", icon: ClipboardList },
   { to: "/patient/records", label: "Records", icon: FileText },
   { to: "/patient/profile", label: "Profile", icon: UserRound },

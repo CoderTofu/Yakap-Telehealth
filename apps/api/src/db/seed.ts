@@ -33,7 +33,7 @@ const plainTextPassword = "password123";
 const users: UserSeed[] = [
   {
     id: randomUUID(),
-    email: "maya.santos@example.com",
+    email: "patient@gmail.com",
     password: plainTextPassword,
     role: "patient",
     name: "Maya Santos",
@@ -51,7 +51,7 @@ const users: UserSeed[] = [
   },
   {
     id: randomUUID(),
-    email: "dr.lara.cruz@example.com",
+    email: "doctor@gmail.com",
     password: plainTextPassword,
     role: "doctor",
     name: "Dr. Lara Cruz",

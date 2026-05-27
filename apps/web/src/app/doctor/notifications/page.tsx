@@ -1,13 +1,8 @@
 "use client";
-import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Bell, BellRing, CalendarCheck, CheckCheck, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-export const Route = createFileRoute("/doctor/notifications")({
-  component: DoctorNotifications,
-});
 
 const ITEMS = [
   {
@@ -45,13 +40,13 @@ const ITEMS = [
 ];
 
 const STYLES: Record<string, { bg: string; color: string }> = {
-  reminder: { bg: "bg-yakap-warning-light", color: "text-[#92400E]" },
-  booking: { bg: "bg-yakap-primary-light", color: "text-yakap-primary" },
-  confirmed: { bg: "bg-yakap-accent-light", color: "text-[#065F46]" },
-  cancelled: { bg: "bg-yakap-danger-light", color: "text-[#991B1B]" },
+  reminder: { bg: "bg-warning-light", color: "text-[#92400E]" },
+  booking: { bg: "bg-primary-light", color: "text-primary" },
+  confirmed: { bg: "bg-accent-light", color: "text-[#065F46]" },
+  cancelled: { bg: "bg-danger-light", color: "text-[#991B1B]" },
 };
 
-function DoctorNotifications() {
+export default function DoctorNotifications() {
   const [items, setItems] = useState(ITEMS);
   return (
     <div className="mx-auto max-w-3xl space-y-4">
@@ -66,7 +61,7 @@ function DoctorNotifications() {
           <CheckCheck className="h-4 w-4" /> Mark all as read
         </Button>
       </div>
-      <ul className="overflow-hidden rounded-xl border border-yakap-border bg-yakap-surface shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+      <ul className="overflow-hidden rounded-xl border border-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
         {items.map((n) => {
           const Icon = n.icon;
           const s = STYLES[n.type];
@@ -79,8 +74,8 @@ function DoctorNotifications() {
                 )
               }
               className={cn(
-                "flex cursor-pointer items-center gap-4 border-b border-yakap-border px-5 py-4 last:border-b-0",
-                n.unread ? "bg-yakap-primary-light/40" : "hover:bg-muted/40",
+                "flex cursor-pointer items-center gap-4 border-b border-border px-5 py-4 last:border-b-0",
+                n.unread ? "bg-primary-light/40" : "hover:bg-muted/40",
               )}
             >
               <div
@@ -92,13 +87,11 @@ function DoctorNotifications() {
                 <Icon className={cn("h-4 w-4", s.color)} />
               </div>
               <div className="flex-1">
-                <div className="text-sm text-yakap-text-primary">
-                  {n.message}
-                </div>
-                <div className="text-xs text-yakap-text-muted">{n.time}</div>
+                <div className="text-sm text-text-primary">{n.message}</div>
+                <div className="text-xs text-text-muted">{n.time}</div>
               </div>
               {n.unread && (
-                <span className="h-2 w-2 rounded-full bg-yakap-primary-mid" />
+                <span className="h-2 w-2 rounded-full bg-primary-mid" />
               )}
             </li>
           );

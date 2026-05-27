@@ -28,7 +28,7 @@ export default function DoctorProfile() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <section className="rounded-xl border border-yakap-border bg-yakap-surface p-6 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+      <section className="rounded-xl border border-border bg-surface p-6 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
         <div className="flex items-center gap-4">
           <div className="group relative">
             <YakapAvatar name={user.name} color={user.avatarColor} size={80} />
@@ -37,10 +37,10 @@ export default function DoctorProfile() {
             </button>
           </div>
           <div>
-            <h2 className="font-serif text-2xl text-yakap-text-primary">
+            <h2 className="font-serif text-2xl text-text-primary">
               {user.name}
             </h2>
-            <p className="text-sm text-yakap-text-secondary">{user.email}</p>
+            <p className="text-sm text-text-secondary">{user.email}</p>
           </div>
         </div>
 
@@ -72,9 +72,7 @@ export default function DoctorProfile() {
         <div className="mt-4 space-y-1.5">
           <div className="flex items-center justify-between">
             <Label>Bio</Label>
-            <span className="text-xs text-yakap-text-muted">
-              {bio.length}/500
-            </span>
+            <span className="text-xs text-text-muted">{bio.length}/500</span>
           </div>
           <Textarea
             rows={5}
@@ -84,7 +82,7 @@ export default function DoctorProfile() {
           />
         </div>
 
-        <Button className="mt-6 bg-yakap-primary hover:bg-yakap-primary-mid">
+        <Button className="mt-6 bg-primary hover:bg-primary-mid">
           Save Changes
         </Button>
       </section>

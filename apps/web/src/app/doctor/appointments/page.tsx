@@ -1,12 +1,11 @@
 "use client";
-
-import { createFileRoute, Link } from "@tanstack/react-router";
+import Link from "next/link";
 import { useState } from "react";
 import { CalendarDays, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { YakapAvatar } from "@/components/yakap/avatar";
-import { StatusBadge } from "@/components/yakap/status-badge";
-import { EmptyState } from "@/components/yakap/empty-state";
+import { YakapAvatar } from "@/components/shared/avatar";
+import { StatusBadge } from "@/components/shared/status-badge";
+import { EmptyState } from "@/components/shared/empty-state";
 import {
   APPOINTMENTS,
   formatDate,
@@ -15,18 +14,14 @@ import {
 } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/doctor/appointments")({
-  component: DoctorAppointments,
-});
-
 const COL: Record<Status, string> = {
-  pending: "border-l-yakap-warning",
-  confirmed: "border-l-yakap-accent",
-  cancelled: "border-l-yakap-danger",
+  pending: "border-l-warning",
+  confirmed: "border-l-accent",
+  cancelled: "border-l-danger",
   completed: "border-l-slate-300",
 };
 
-function DoctorAppointments() {
+export default function DoctorAppointments() {
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
   const all = APPOINTMENTS.filter((a) => a.doctorId === "d1");
   const upcoming = all.filter(
@@ -39,7 +34,7 @@ function DoctorAppointments() {
 
   return (
     <div className="space-y-6">
-      <div className="inline-flex rounded-lg border border-yakap-border bg-yakap-surface p-1">
+      <div className="inline-flex rounded-lg border border-border bg-surface p-1">
         {(["upcoming", "past"] as const).map((t) => (
           <button
             key={t}
@@ -47,8 +42,8 @@ function DoctorAppointments() {
             className={cn(
               "rounded-md px-4 py-1.5 text-sm font-medium capitalize transition-colors",
               tab === t
-                ? "bg-yakap-primary text-white"
-                : "text-yakap-text-secondary hover:text-yakap-text-primary",
+                ? "bg-primary text-white"
+                : "text-text-secondary hover:text-text-primary",
             )}
           >
             {t}
@@ -57,7 +52,7 @@ function DoctorAppointments() {
       </div>
 
       {list.length === 0 ? (
-        <div className="rounded-xl border border-yakap-border bg-yakap-surface">
+        <div className="rounded-xl border border-border bg-surface">
           <EmptyState
             icon={CalendarDays}
             title="No appointments"
@@ -77,7 +72,7 @@ function DoctorAppointments() {
               <li
                 key={a.id}
                 className={cn(
-                  "rounded-xl border border-yakap-border bg-yakap-surface p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)] border-l-4",
+                  "rounded-xl border border-border bg-surface p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)] border-l-4",
                   COL[a.status],
                 )}
               >
@@ -89,10 +84,10 @@ function DoctorAppointments() {
                       size={48}
                     />
                     <div>
-                      <div className="font-medium text-yakap-text-primary">
+                      <div className="font-medium text-text-primary">
                         {p.name}
                       </div>
-                      <div className="text-xs text-yakap-text-muted">
+                      <div className="text-xs text-text-muted">
                         {formatDate(a.date)} · {a.time}
                       </div>
                     </div>
@@ -105,14 +100,14 @@ function DoctorAppointments() {
                     a.meetUrl && (
                       <Button
                         size="sm"
-                        className="bg-yakap-primary hover:bg-yakap-primary-mid"
+                        className="bg-primary hover:bg-primary-mid"
                         onClick={() => window.open(a.meetUrl, "_blank")}
                       >
                         <Video className="h-4 w-4" /> Join Consultation
                       </Button>
                     )}
                   <Button size="sm" variant="outline" asChild>
-                    <Link to="/doctor/appointments/$id" params={{ id: a.id }}>
+                    <Link href="/doctor/appointments/$id" params={{ id: a.id }}>
                       {tab === "past" ? "View / Edit Notes" : "Add Notes"}
                     </Link>
                   </Button>

@@ -27,7 +27,6 @@ export default function FindDoctors() {
         const json = await res.json();
         // Support { data: { items } } or { items }
         const items = json?.data?.items ?? json?.items ?? [];
-        console.log(items);
         if (mounted) setDoctors(items);
       } catch (err) {
         // swallow and keep empty list (UI will show 0 results)
@@ -44,10 +43,6 @@ export default function FindDoctors() {
     return doctors.filter((d) => {
       if (query && !d.name.toLowerCase().includes(query.toLowerCase()))
         return false;
-      console.log(selected.length && !selected.includes(d.specialization));
-      console.log(selected.length);
-      console.log(!selected.includes(d.specialization));
-
       if (selected.length && !selected.includes(d.specialization)) return false;
       return true;
     });
@@ -112,7 +107,7 @@ export default function FindDoctors() {
           <h4 className="mt-5 mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
             Specialization
           </h4>
-          <ul className="max-h-[280px] space-y-1 overflow-y-auto pr-1">
+          <ul className="max-h-70 space-y-1 overflow-y-auto pr-1">
             {SPECIALTIES.map((s) => {
               const checked = selected.includes(s.value);
               const isHighlight = highlight.includes(s.value);

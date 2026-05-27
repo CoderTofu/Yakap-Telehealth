@@ -150,12 +150,17 @@ export function validateBlockPayload(
   res: Response,
   next: NextFunction,
 ) {
+  function parseScheduledAtAsManila(iso: string) {
+    if (typeof iso !== "string") return new Date(NaN);
+    if (/[zZ]$/.test(iso) || /[+\-]\d{2}:\d{2}$/.test(iso)) return new Date(iso);
+    return new Date(iso + "+08:00");
+  }
   const startsAt = req.body?.starts_at;
   const endsAt = req.body?.ends_at;
 
   if (startsAt && endsAt) {
-    const startDate = new Date(String(startsAt));
-    const endDate = new Date(String(endsAt));
+    const startDate = parseScheduledAtAsManila(String(startsAt));
+    const endDate = parseScheduledAtAsManila(String(endsAt));
 
     if (
       Number.isNaN(startDate.getTime()) ||

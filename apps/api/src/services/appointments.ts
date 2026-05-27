@@ -5,6 +5,7 @@ type Role = "patient" | "doctor";
 
 type AuthUser = {
   id: string;
+  email?: string;
   role: Role;
   name: string;
 };
@@ -26,6 +27,16 @@ function formatGoogleDate(date: Date) {
   return `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}T${pad(
     date.getUTCHours(),
   )}${pad(date.getUTCMinutes())}${pad(date.getUTCSeconds())}Z`;
+}
+
+const MANILA_OFFSET_MS = 8 * 60 * 60 * 1000;
+
+function parseScheduledAtAsManila(iso: string) {
+  if (typeof iso !== "string") return new Date(NaN);
+  // If the string already has a timezone (Z or +/- offset), parse directly.
+  if (/[zZ]$/.test(iso) || /[+\-]\d{2}:\d{2}$/.test(iso)) return new Date(iso);
+  // Otherwise treat it as local Asia/Manila time by appending +08:00
+  return new Date(iso + "+08:00");
 }
 
 function buildGoogleCalendarLink(input: {
@@ -54,16 +65,19 @@ async function assertDoctorAvailable(
   scheduledAtIso: string,
   durationMinutes: number,
 ) {
-  const scheduledAt = new Date(scheduledAtIso);
+  const scheduledAt = parseScheduledAtAsManila(scheduledAtIso);
 
   if (Number.isNaN(scheduledAt.getTime())) {
     throw createHttpError(400, "Invalid scheduled_at");
   }
 
   const endAt = new Date(scheduledAt.getTime() + durationMinutes * 60 * 1000);
-  const dayOfWeek = scheduledAt.getUTCDay();
-  const hh = String(scheduledAt.getUTCHours()).padStart(2, "0");
-  const mm = String(scheduledAt.getUTCMinutes()).padStart(2, "0");
+
+  // Compute weekday and time in Asia/Manila local time
+  const manilaForParts = new Date(scheduledAt.getTime() + MANILA_OFFSET_MS);
+  const dayOfWeek = manilaForParts.getUTCDay();
+  const hh = String(manilaForParts.getUTCHours()).padStart(2, "0");
+  const mm = String(manilaForParts.getUTCMinutes()).padStart(2, "0");
   const startTime = `${hh}:${mm}`;
 
   const weeklyResult = await pool.query<{ ok: number }>(
@@ -123,7 +137,7 @@ async function assertDoctorAvailable(
 }
 
 export async function createAppointment(
-  patientId: string,
+  patient: AuthUser,
   input: {
     doctor_id?: string;
     scheduled_at?: string;
@@ -162,11 +176,28 @@ export async function createAppointment(
 
   await assertDoctorAvailable(doctorId, scheduledAt, duration);
 
-  const patientResult = await pool.query<{ name: string }>(
-    `SELECT name FROM users WHERE id = $1 LIMIT 1`,
-    [patientId],
+  const patientResult = await pool.query<{ id: string; name: string }>(
+    `SELECT id, name FROM users WHERE id = $1 LIMIT 1`,
+    [patient.id],
   );
-  const patientName = patientResult.rows[0]?.name ?? "Patient";
+
+  const resolvedPatient =
+    patientResult.rows[0] ||
+    (patient.email
+      ? (
+          await pool.query<{ id: string; name: string }>(
+            `SELECT id, name FROM users WHERE email = $1 LIMIT 1`,
+            [patient.email],
+          )
+        ).rows[0]
+      : undefined);
+
+  if (!resolvedPatient) {
+    throw createHttpError(404, "Patient not found");
+  }
+
+  const patientId = resolvedPatient.id;
+  const patientName = resolvedPatient.name ?? "Patient";
 
   const { rows } = await pool.query(
     `INSERT INTO appointments (

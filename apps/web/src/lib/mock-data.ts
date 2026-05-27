@@ -192,10 +192,10 @@ export function getAppointment(id: string) {
 }
 
 export function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  return new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "Asia/Manila" });
 }
 export function formatLongDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  return new Date(iso).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "Asia/Manila" });
 }
 export function calcAge(dob: string) {
   const d = new Date(dob);

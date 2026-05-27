@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Award, BadgeCheck, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,37 +18,105 @@ import type { Doctor } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { useParams } from "next/navigation";
 
-function buildWeek() {
-  const today = new Date();
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    return d;
-  });
+type AvailabilitySlot = {
+  starts_at: string;
+  ends_at: string;
+};
+
+type DoctorAvailability = {
+  doctor_id: string;
+  from: string;
+  to: string;
+  slots: AvailabilitySlot[];
+};
+
+function formatDateKey(date: Date) {
+  return [
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, "0"),
+    String(date.getUTCDate()).padStart(2, "0"),
+  ].join("-");
 }
 
-const SLOTS = [
-  "9:00 AM",
-  "9:30 AM",
-  "10:00 AM",
-  "10:30 AM",
-  "11:00 AM",
-  "1:00 PM",
-  "1:30 PM",
-  "2:00 PM",
-  "2:30 PM",
-  "3:00 PM",
-];
+function formatDayLabel(date: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    timeZone: "Asia/Manila",
+  }).format(date);
+}
+
+function formatDayNumber(date: Date) {
+  return Number(
+    new Intl.DateTimeFormat("en-US", { day: "numeric", timeZone: "Asia/Manila" }).format(
+      date,
+    ),
+  );
+}
+
+function formatSlotTime(iso: string) {
+  return new Date(iso).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Manila"
+  })
+}
+
+function buildAvailabilityDays(fromIso: string, toIso: string) {
+  const start = new Date(fromIso);
+  const end = new Date(toIso);
+  const days: Date[] = [];
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return days;
+  }
+
+  const MANILA_OFFSET = 8 * 60 * 60 * 1000;
+  const sManila = new Date(start.getTime() + MANILA_OFFSET);
+  const eManila = new Date(end.getTime() + MANILA_OFFSET);
+
+  let cursor = new Date(
+    Date.UTC(sManila.getUTCFullYear(), sManila.getUTCMonth(), sManila.getUTCDate()),
+  );
+
+  const endKey = [
+    eManila.getUTCFullYear(),
+    String(eManila.getUTCMonth() + 1).padStart(2, "0"),
+    String(eManila.getUTCDate()).padStart(2, "0"),
+  ].join("-");
+
+  while (formatDateKey(cursor) <= endKey) {
+    days.push(new Date(cursor));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return days;
+}
 
 export default function DoctorDetail() {
   const params = useParams<Record<string, string | string[]>>();
   const idParam = params.id ?? params["id.tsx"];
   const id = Array.isArray(idParam) ? idParam[0] : idParam;
   const [doctor, setDoctor] = useState<Doctor | null>(null);
-  const week = buildWeek();
-  const [day, setDay] = useState(0);
-  const [slot, setSlot] = useState<string | null>(null);
+  const [availability, setAvailability] = useState<DoctorAvailability | null>(
+    null,
+  );
+  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
+  const [slot, setSlot] = useState<AvailabilitySlot | null>(null);
   const [confirm, setConfirm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
+
+  const availableDays = availability
+    ? buildAvailabilityDays(availability.from, availability.to)
+    : [];
+
+  const slotsForSelectedDay = availability
+    ? availability.slots.filter((entry) => {
+        const slotDate = formatDateKey(new Date(entry.starts_at));
+        return slotDate === selectedDateKey;
+      })
+    : [];
 
   useEffect(() => {
     if (!id) return;
@@ -56,30 +125,55 @@ export default function DoctorDetail() {
     async function fetchDoctors() {
       try {
         const apiBase = process.env.NEXT_PUBLIC_API_URL;
-        const url = `${apiBase}/api/v1/doctors/${id}`;
-        const res = await fetch(url);
-        const json = await res.json();
-        const item = json?.data ?? json?.item ?? null;
+        const doc_url = `${apiBase}/api/v1/doctors/${id}`;
+        const doc_res = await fetch(doc_url);
+        const doc_json = await doc_res.json();
+        const doc_data = doc_json?.data ?? doc_json?.item ?? null;
+
+        const doc_avail_url = `${apiBase}/api/v1/doctors/${id}/availability`;
+        const doc_avail_res = await fetch(doc_avail_url);
+        const doc_avail_json = await doc_avail_res.json();
+        const doc_avail_data =
+          doc_avail_json?.data ?? doc_avail_json?.item ?? null;
 
         if (
           mounted &&
-          item &&
-          typeof item === "object" &&
-          !Array.isArray(item)
+          doc_data &&
+          typeof doc_data === "object" &&
+          !Array.isArray(doc_data)
         ) {
           setDoctor({
-            id: String(item.id ?? id),
-            name: String(item.name ?? "Unknown doctor"),
-            specialty: String(item.specialization ?? item.specialty ?? ""),
-            bio: String(item.bio ?? ""),
-            experience: Number(item.years_exp ?? item.experience ?? 0),
-            license: String(item.license_number ?? item.license ?? ""),
-            fee: Number(item.consultation_fee ?? item.fee ?? 0),
-            availableDays: Array.isArray(item.availableDays)
-              ? item.availableDays
+            id: String(doc_data.id ?? id),
+            name: String(doc_data.name ?? "Unknown doctor"),
+            specialty: String(
+              doc_data.specialization ?? doc_data.specialty ?? "",
+            ),
+            bio: String(doc_data.bio ?? ""),
+            experience: Number(doc_data.years_exp ?? doc_data.experience ?? 0),
+            license: String(doc_data.license_number ?? doc_data.license ?? ""),
+            fee: Number(doc_data.consultation_fee ?? doc_data.fee ?? 0),
+            availableDays: Array.isArray(doc_data.availableDays)
+              ? doc_data.availableDays
               : [],
-            avatarColor: String(item.avatarColor ?? "#0B4F71"),
+            avatarColor: String(doc_data.avatarColor ?? "#0B4F71"),
           });
+        }
+
+        if (
+          mounted &&
+          doc_avail_data &&
+          typeof doc_avail_data === "object" &&
+          !Array.isArray(doc_avail_data)
+        ) {
+          const nextAvailability = doc_avail_data as DoctorAvailability;
+          setAvailability(nextAvailability);
+
+          if (!selectedDateKey) {
+            const firstAvailableDay = nextAvailability.slots[0]
+              ? formatDateKey(new Date(nextAvailability.slots[0].starts_at))
+              : null;
+            setSelectedDateKey(firstAvailableDay);
+          }
         }
       } catch (err) {
         // swallow and keep empty list (UI will show 0 results)
@@ -96,6 +190,65 @@ export default function DoctorDetail() {
     return (
       <div className="text-center text-text-secondary">Doctor not found.</div>
     );
+
+  const selectedDay =
+    availableDays.find((day) => formatDateKey(day) === selectedDateKey) ??
+    availableDays[0] ??
+    null;
+
+  const handleSubmit = async () => {
+    if (!slot) return;
+    setIsSubmitting(true);
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiBase) throw new Error("API URL not configured");
+
+      const durationMinutes = Math.max(
+        1,
+        Math.round(
+          (new Date(slot.ends_at).getTime() - new Date(slot.starts_at).getTime()) /
+            60000,
+        ),
+      );
+
+      const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+      if (!token) {
+        // redirect to login if not authenticated
+        router.push("/login");
+        return;
+      }
+
+      const resp = await fetch(`${apiBase}/api/v1/appointments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          doctor_id: doctor.id,
+          scheduled_at: slot.starts_at,
+          duration_minutes: durationMinutes,
+        }),
+      });
+
+      const json = await resp.json();
+
+      if (!resp.ok) {
+        const msg = json?.error?.message ?? json?.message ?? "Failed to create appointment";
+        throw new Error(msg);
+      }
+
+      // Success: close dialog and go to appointments
+      setConfirm(false);
+      router.push("/patient/appointments");
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : "Failed to create appointment");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+  
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -149,22 +302,31 @@ export default function DoctorDetail() {
           Choose a date and time
         </h3>
 
-        <div className="mt-5 grid grid-cols-7 gap-2">
-          {week.map((d, i) => {
-            const active = i === day;
+        <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+          {availableDays.map((day) => {
+            const key = formatDateKey(day);
+            const active = key === selectedDateKey;
+            const hasSlots = availability
+              ? availability.slots.some(
+                  (entry) => formatDateKey(new Date(entry.starts_at)) === key,
+                )
+              : false;
             return (
               <button
-                key={i}
+                key={key}
                 onClick={() => {
-                  setDay(i);
+                  setSelectedDateKey(key);
                   setSlot(null);
                 }}
                 className={cn(
                   "rounded-lg border p-3 text-center transition-colors",
                   active
                     ? "border-primary bg-primary text-white"
-                    : "border-border bg-surface hover:border-primary-mid",
+                    : hasSlots
+                      ? "border-border bg-surface hover:border-primary-mid"
+                      : "cursor-not-allowed border-border bg-muted text-text-muted",
                 )}
+                disabled={!hasSlots}
               >
                 <div
                   className={cn(
@@ -172,43 +334,50 @@ export default function DoctorDetail() {
                     active ? "text-white/80" : "text-text-muted",
                   )}
                 >
-                  {d.toLocaleDateString("en-US", { weekday: "short" })}
+                  {formatDayLabel(day)}
                 </div>
-                <div className="mt-1 font-serif text-xl">{d.getDate()}</div>
+                <div className="mt-1 font-serif text-xl">
+                  {formatDayNumber(day)}
+                </div>
               </button>
             );
           })}
         </div>
 
-        <div className="mt-6 grid grid-cols-3 gap-2 sm:grid-cols-5">
-          {SLOTS.map((s, i) => {
-            const disabled = i % 4 === 3;
-            const active = slot === s;
+        <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+          {slotsForSelectedDay.map((entry) => {
+            const timeLabel = formatSlotTime(entry.starts_at);
+            const active = slot?.starts_at === entry.starts_at;
             return (
               <button
-                key={s}
-                disabled={disabled}
-                onClick={() => setSlot(s)}
+                key={entry.starts_at}
+                onClick={() => setSlot(entry)}
                 className={cn(
-                  "rounded-lg border px-2 py-2 text-sm transition-colors",
-                  disabled &&
-                    "cursor-not-allowed border-border bg-muted text-text-muted line-through",
-                  !disabled &&
-                    !active &&
-                    "border-border hover:border-primary-mid",
-                  !disabled && active && "border-primary bg-primary text-white",
+                  "rounded-lg border px-2 py-2 text-sm transition-colors cursor-pointer ",
+                  !active && "border-border hover:border-primary-mid",
+                  active && "border-primary bg-primary text-white",
                 )}
               >
-                {s}
+                {timeLabel}
               </button>
             );
           })}
         </div>
+
+        {availableDays.length === 0 ? (
+          <div className="mt-4 rounded-lg border border-dashed border-border bg-muted/40 p-4 text-sm text-text-secondary">
+            No availability returned for the next 7 days.
+          </div>
+        ) : slotsForSelectedDay.length === 0 ? (
+          <div className="mt-4 rounded-lg border border-dashed border-border bg-muted/40 p-4 text-sm text-text-secondary">
+            No slots available on this date.
+          </div>
+        ) : null}
 
         <Button
           disabled={!slot}
           onClick={() => setConfirm(true)}
-          className="mt-6 w-full bg-primary hover:bg-primary-mid"
+          className="mt-6 w-full bg-primary hover:bg-primary-mid cursor-pointer"
         >
           Confirm Booking
         </Button>
@@ -232,16 +401,23 @@ export default function DoctorDetail() {
             <div>
               <span className="text-text-muted">Date: </span>
               <span className="font-medium">
-                {week[day].toLocaleDateString("en-US", {
-                  weekday: "long",
-                  month: "long",
-                  day: "numeric",
-                })}
+                {selectedDay
+                  ? new Intl.DateTimeFormat("en-US", {
+                      weekday: "long",
+                      month: "long",
+                      day: "numeric",
+                      timeZone: "Asia/Manila",
+                    }).format(selectedDay)
+                  : ""}
               </span>
             </div>
             <div>
               <span className="text-text-muted">Time: </span>
-              <span className="font-medium">{slot}</span>
+              <span className="font-medium">
+                {slot
+                  ? `${formatSlotTime(slot.starts_at)} - ${formatSlotTime(slot.ends_at)}`
+                  : ""}
+              </span>
             </div>
             <div>
               <span className="text-text-muted">Fee: </span>
@@ -251,16 +427,15 @@ export default function DoctorDetail() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirm(false)}>
+            <Button className="cursor-pointer" variant="outline" onClick={() => setConfirm(false)}>
               Cancel
             </Button>
             <Button
-              className="bg-primary hover:bg-primary-mid"
-              onClick={() => {
-                setConfirm(false);
-              }}
+              className="bg-primary hover:bg-primary-mid cursor-pointer"
+              disabled={isSubmitting}
+              onClick={handleSubmit}
             >
-              Confirm
+              {isSubmitting ? "Creating..." : "Confirm"}
             </Button>
           </DialogFooter>
         </DialogContent>

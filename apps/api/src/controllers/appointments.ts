@@ -35,7 +35,15 @@ export async function createAppointmentHandler(
   }
 
   try {
-    const data = await createAppointment(req.user!.id, req.body ?? {});
+    const data = await createAppointment(
+      {
+        id: req.user!.id,
+        email: req.user!.email,
+        role: req.user!.role,
+        name: req.user!.name,
+      },
+      req.body ?? {},
+    );
     return res.status(201).json({ data });
   } catch (error) {
     return next(error);

@@ -152,19 +152,13 @@ export default function PatientAppointments() {
                   )}
                   {tab === "past" && a.status === "completed" && (
                     <Button size="sm" variant="outline" asChild>
-                      <Link
-                        href="/patient/appointments/$id"
-                        params={{ id: a.id }}
-                      >
+                      <Link href={`/patient/appointments/${a.id}`}>
                         View Notes
                       </Link>
                     </Button>
                   )}
                   <Button size="sm" variant="ghost" asChild>
-                    <Link
-                      href="/patient/appointments/$id"
-                      params={{ id: a.id }}
-                    >
+                    <Link href={`/patient/appointments/${a.id}`}>
                       Details
                     </Link>
                   </Button>

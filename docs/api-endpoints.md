@@ -321,7 +321,7 @@ Auth/role:
 Body:
 
 - `doctor_id` (string, required)
-- `scheduled_at` (ISO datetime, required)
+- `scheduled_at` (ISO datetime, required) — interpreted in Asia/Manila when no timezone is provided; timezone-aware datetimes are accepted.
 - `duration_minutes` (number, optional, default `30`)
 
 Validation rules:

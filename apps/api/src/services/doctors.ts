@@ -38,19 +38,26 @@ function createHttpError(statusCode: number, message: string): HttpError {
   return error;
 }
 
-function toUtcTimestamp(date: Date, hhmm: string) {
+const MANILA_OFFSET_MS = 8 * 60 * 60 * 1000;
+
+function toManilaTimestamp(date: Date, hhmm: string) {
   const [h, m] = hhmm.split(":").map(Number);
-  return new Date(
-    Date.UTC(
-      date.getUTCFullYear(),
-      date.getUTCMonth(),
-      date.getUTCDate(),
-      h,
-      m,
-      0,
-      0,
-    ),
-  );
+  // Compute Manila-local date parts from the provided date
+  const manilaDate = new Date(date.getTime() + MANILA_OFFSET_MS);
+  const y = manilaDate.getUTCFullYear();
+  const mo = manilaDate.getUTCMonth();
+  const d = manilaDate.getUTCDate();
+
+  // Create UTC milliseconds for the Manila-local datetime, then subtract offset
+  // to get the correct UTC instant for that Manila-local time.
+  const utcMsForManilaLocal = Date.UTC(y, mo, d, h, m, 0, 0) - MANILA_OFFSET_MS;
+  return new Date(utcMsForManilaLocal);
+}
+
+function parseScheduledAtAsManila(iso: string) {
+  if (typeof iso !== "string") return new Date(NaN);
+  if (/[zZ]$/.test(iso) || /[+\-]\d{2}:\d{2}$/.test(iso)) return new Date(iso);
+  return new Date(iso + "+08:00");
 }
 
 function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) {
@@ -168,9 +175,9 @@ export async function getDoctorAvailability(
   toIso?: string,
 ) {
   const now = new Date();
-  const rangeStart = fromIso ? new Date(fromIso) : now;
+  const rangeStart = fromIso ? parseScheduledAtAsManila(fromIso) : now;
   const rangeEnd = toIso
-    ? new Date(toIso)
+    ? parseScheduledAtAsManila(toIso)
     : new Date(rangeStart.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   if (
@@ -222,16 +229,17 @@ export async function getDoctorAvailability(
     cursor < rangeEnd;
     cursor = new Date(cursor.getTime() + 24 * 60 * 60 * 1000)
   ) {
+    const manilaCursor = new Date(cursor.getTime() + MANILA_OFFSET_MS);
     const daySchedules = scheduleResult.rows.filter(
-      (row) => row.day_of_week === cursor.getUTCDay(),
+      (row) => row.day_of_week === manilaCursor.getUTCDay(),
     );
 
     for (const schedule of daySchedules) {
-      const scheduleStart = toUtcTimestamp(
+      const scheduleStart = toManilaTimestamp(
         cursor,
         schedule.start_time.slice(0, 5),
       );
-      const scheduleEnd = toUtcTimestamp(cursor, schedule.end_time.slice(0, 5));
+      const scheduleEnd = toManilaTimestamp(cursor, schedule.end_time.slice(0, 5));
 
       for (
         let slotStart = new Date(scheduleStart.getTime());
@@ -364,8 +372,8 @@ export async function createDoctorBlock(
   doctorId: string,
   input: { starts_at: string; ends_at: string; reason?: string },
 ) {
-  const start = new Date(input.starts_at);
-  const end = new Date(input.ends_at);
+  const start = parseScheduledAtAsManila(input.starts_at);
+  const end = parseScheduledAtAsManila(input.ends_at);
 
   if (
     Number.isNaN(start.getTime()) ||

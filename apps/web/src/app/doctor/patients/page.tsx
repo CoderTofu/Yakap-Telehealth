@@ -56,7 +56,7 @@ export default function PatientsList() {
                 <td className="px-5 py-4 text-text-secondary">{p.phone}</td>
                 <td className="px-5 py-4 text-right">
                   <Button size="sm" variant="outline" asChild>
-                    <Link href="/doctor/patients/$id" params={{ id: p.id }}>
+                    <Link href={`/doctor/patients/${p.id}`}>
                       View profile
                     </Link>
                   </Button>

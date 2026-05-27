@@ -107,7 +107,7 @@ export default function DoctorAppointments() {
                       </Button>
                     )}
                   <Button size="sm" variant="outline" asChild>
-                    <Link href="/doctor/appointments/$id" params={{ id: a.id }}>
+                    <Link href={`/doctor/appointments/${a.id}`}>
                       {tab === "past" ? "View / Edit Notes" : "Add Notes"}
                     </Link>
                   </Button>

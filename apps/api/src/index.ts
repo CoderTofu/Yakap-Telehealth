@@ -30,7 +30,11 @@ app.use("/api/v1/patients", patientRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
 
 app.get("/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+  const MANILA_OFFSET_MS = 8 * 60 * 60 * 1000;
+  const manilaIso = new Date(Date.now() + MANILA_OFFSET_MS)
+    .toISOString()
+    .replace(/Z$/, "+08:00");
+  res.json({ status: "ok", timestamp: manilaIso });
 });
 
 app.use(errorHandler);

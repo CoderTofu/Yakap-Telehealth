@@ -142,7 +142,23 @@ const schemaStatements = [
     scheduled_at TIMESTAMPTZ NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('pending', 'confirmed', 'cancelled', 'completed')),
     video_room_url TEXT,
+    duration_minutes INT NOT NULL DEFAULT 30,
+    approved_at TIMESTAMPTZ,
+    rejected_at TIMESTAMPTZ,
+    rejection_reason TEXT,
+    cancelled_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    cancelled_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );`,
+  `CREATE TABLE IF NOT EXISTS doctor_schedule_blocks (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    doctor_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    starts_at TIMESTAMPTZ NOT NULL,
+    ends_at TIMESTAMPTZ NOT NULL,
+    reason TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CHECK (ends_at > starts_at)
   );`,
   `CREATE TABLE IF NOT EXISTS consultation_notes (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -190,6 +206,7 @@ function buildSeedSql() {
       consultation_notes,
       notifications,
       appointments,
+      doctor_schedule_blocks,
       doctor_schedules,
       patient_profiles,
       doctor_profiles,

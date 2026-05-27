@@ -5,7 +5,12 @@ import helmet from "helmet";
 import morgan from "morgan";
 
 import { errorHandler } from "./middleware/errorHandler";
+import appointmentRoutes from "./routes/appointments";
 import authRoutes from "./routes/auth";
+import doctorRoutes from "./routes/doctors";
+import notificationRoutes from "./routes/notifications";
+import patientRoutes from "./routes/patients";
+import profileRoutes from "./routes/profile";
 
 dotenv.config();
 
@@ -18,6 +23,11 @@ app.use(morgan("dev"));
 app.use(express.json());
 
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/doctors", doctorRoutes);
+app.use("/api/v1/appointments", appointmentRoutes);
+app.use("/api/v1/profile", profileRoutes);
+app.use("/api/v1/patients", patientRoutes);
+app.use("/api/v1/notifications", notificationRoutes);
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

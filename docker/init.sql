@@ -68,3 +68,33 @@ CREATE TABLE IF NOT EXISTS notifications (
 	is_read BOOLEAN NOT NULL DEFAULT FALSE,
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- One-off doctor unavailability blocks (date/time specific)
+CREATE TABLE IF NOT EXISTS doctor_schedule_blocks (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  doctor_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  starts_at TIMESTAMPTZ NOT NULL,
+  ends_at TIMESTAMPTZ NOT NULL,
+  reason TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CHECK (ends_at > starts_at)
+);
+
+-- Appointment metadata for cleaner workflows
+ALTER TABLE appointments
+  ADD COLUMN IF NOT EXISTS duration_minutes INT NOT NULL DEFAULT 30,
+  ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS rejection_reason TEXT,
+  ADD COLUMN IF NOT EXISTS cancelled_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS idx_appointments_doctor_status_time
+  ON appointments (doctor_id, status, scheduled_at);
+
+CREATE INDEX IF NOT EXISTS idx_appointments_patient_status_time
+  ON appointments (patient_id, status, scheduled_at);
+
+CREATE INDEX IF NOT EXISTS idx_doctor_schedule_blocks_doctor_time
+  ON doctor_schedule_blocks (doctor_id, starts_at, ends_at);

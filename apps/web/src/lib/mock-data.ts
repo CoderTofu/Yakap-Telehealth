@@ -32,6 +32,9 @@ export interface Appointment {
   date: string; // ISO
   time: string;
   status: Status;
+  doctorName?: string;
+  doctorSpecialty?: string;
+  doctorAvatarColor?: string;
   notes?: {
     subjective: string;
     diagnosis: string;
@@ -145,8 +148,8 @@ function daysFromNow(n: number) {
 }
 
 export const APPOINTMENTS: Appointment[] = [
-  { id: "a1", doctorId: "d1", patientId: "p1", date: daysFromNow(0), time: "10:00 AM", status: "confirmed", meetUrl: "https://meet.google.com/abc-defg-hij" },
-  { id: "a2", doctorId: "d3", patientId: "p1", date: daysFromNow(2), time: "2:30 PM", status: "confirmed", meetUrl: "https://meet.google.com/xyz-pqrs-tuv" },
+  { id: "a1", doctorId: "d1", patientId: "p1", date: daysFromNow(0), time: "10:00 AM", status: "confirmed", meetUrl: "https://meet.jit.si/yakap-a1" },
+  { id: "a2", doctorId: "d3", patientId: "p1", date: daysFromNow(2), time: "2:30 PM", status: "confirmed", meetUrl: "https://meet.jit.si/yakap-a2" },
   { id: "a3", doctorId: "d2", patientId: "p1", date: daysFromNow(5), time: "9:00 AM", status: "pending" },
   {
     id: "a4", doctorId: "d4", patientId: "p1", date: daysFromNow(-7), time: "11:00 AM", status: "completed",
@@ -170,7 +173,7 @@ export const APPOINTMENTS: Appointment[] = [
   },
   { id: "a6", doctorId: "d5", patientId: "p1", date: daysFromNow(-40), time: "1:00 PM", status: "cancelled" },
   // Doctor-side: appointments for d1
-  { id: "a7", doctorId: "d1", patientId: "p2", date: daysFromNow(0), time: "11:30 AM", status: "confirmed", meetUrl: "https://meet.google.com/qrs-tuvw-xyz" },
+  { id: "a7", doctorId: "d1", patientId: "p2", date: daysFromNow(0), time: "11:30 AM", status: "confirmed", meetUrl: "https://meet.jit.si/yakap-a7" },
   { id: "a8", doctorId: "d1", patientId: "p3", date: daysFromNow(1), time: "9:30 AM", status: "pending" },
 ];
 

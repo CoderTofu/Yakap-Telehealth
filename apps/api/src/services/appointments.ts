@@ -1,8 +1,3 @@
-import { access } from "node:fs/promises";
-import path from "node:path";
-
-import { SpacesServiceClient } from "@google-apps/meet";
-import { authenticate } from "@google-cloud/local-auth";
 import pool from "../db/pool";
 import { createNotification } from "./notifications";
 
@@ -27,19 +22,11 @@ function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) {
   return aStart < bEnd && aEnd > bStart;
 }
 
-function formatGoogleDate(date: Date) {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}T${pad(
-    date.getUTCHours(),
-  )}${pad(date.getUTCMinutes())}${pad(date.getUTCSeconds())}Z`;
-}
-
 const MANILA_OFFSET_MS = 8 * 60 * 60 * 1000;
-const MEET_SCOPES = ["https://www.googleapis.com/auth/meetings.space.created"];
-const MEET_CREDENTIALS_PATH = path.join(
-  process.cwd(),
-  process.env.GOOGLE_MEET_CREDENTIALS_PATH || "client-secret.json",
-);
+
+function buildFallbackMeetingUrl(appointmentId: string) {
+  return `https://meet.jit.si/yakap-${encodeURIComponent(appointmentId)}`;
+}
 
 function parseScheduledAtAsManila(iso: string) {
   if (typeof iso !== "string") return new Date(NaN);
@@ -49,49 +36,11 @@ function parseScheduledAtAsManila(iso: string) {
   return new Date(iso + "+08:00");
 }
 
-function buildGoogleCalendarLink(input: {
-  startsAt: Date;
-  durationMinutes: number;
-  doctorName: string;
-  patientName: string;
-  appointmentId: string;
-}) {
-  const end = new Date(
-    input.startsAt.getTime() + input.durationMinutes * 60 * 1000,
-  );
-
-  const params = new URLSearchParams({
-    action: "TEMPLATE",
-    text: "Telehealth Consultation",
-    details: `Appointment ${input.appointmentId} with Dr. ${input.doctorName} and ${input.patientName}`,
-    dates: `${formatGoogleDate(input.startsAt)}/${formatGoogleDate(end)}`,
-  });
-
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
-}
-
-async function createGoogleMeetLink() {
-  try {
-    await access(MEET_CREDENTIALS_PATH);
-  } catch {
-    return null;
-  }
-
-  const authClient = await authenticate({
-    scopes: MEET_SCOPES,
-    keyfilePath: MEET_CREDENTIALS_PATH,
-  });
-
-  const meetClient = new SpacesServiceClient({ authClient } as never);
-  const [space] = await meetClient.createSpace({});
-
-  return space.meetingUri ?? null;
-}
-
 async function assertDoctorAvailable(
   doctorId: string,
   scheduledAtIso: string,
   durationMinutes: number,
+  excludeAppointmentId?: string,
 ) {
   const scheduledAt = parseScheduledAtAsManila(scheduledAtIso);
 
@@ -138,18 +87,29 @@ async function assertDoctorAvailable(
     throw createHttpError(409, "Selected slot is blocked by doctor");
   }
 
-  const conflictResult = await pool.query<{
-    scheduled_at: string;
-    duration_minutes: number;
-  }>(
-    `SELECT scheduled_at::text, duration_minutes
+  const conflictValues: Array<string> = [
+    doctorId,
+    scheduledAt.toISOString(),
+    endAt.toISOString(),
+  ];
+
+  let conflictSql = `SELECT scheduled_at::text, duration_minutes
      FROM appointments
      WHERE doctor_id = $1
        AND status IN ('pending', 'confirmed')
        AND scheduled_at < $3::timestamptz
-       AND (scheduled_at + (duration_minutes || ' minutes')::interval) > $2::timestamptz`,
-    [doctorId, scheduledAt.toISOString(), endAt.toISOString()],
-  );
+       AND (scheduled_at + (duration_minutes || ' minutes')::interval) > $2::timestamptz`;
+
+  if (excludeAppointmentId) {
+    conflictValues.push(excludeAppointmentId);
+    conflictSql += `
+       AND id <> $4`;
+  }
+
+  const conflictResult = await pool.query<{
+    scheduled_at: string;
+    duration_minutes: number;
+  }>(conflictSql, conflictValues);
 
   const hasConflict = conflictResult.rows.some((row) => {
     const existingStart = new Date(row.scheduled_at);
@@ -335,15 +295,7 @@ export async function decideAppointment(
   }
 
   if (action === "approve") {
-    const meetLink =
-      (await createGoogleMeetLink()) ??
-      buildGoogleCalendarLink({
-        startsAt: new Date(appointment.scheduled_at),
-        durationMinutes: appointment.duration_minutes,
-        doctorName: doctorUser.name,
-        patientName: appointment.patient_name,
-        appointmentId: appointment.id,
-      });
+    const videoRoomUrl = buildFallbackMeetingUrl(appointmentId);
 
     const { rows } = await pool.query(
       `UPDATE appointments
@@ -355,7 +307,7 @@ export async function decideAppointment(
          video_room_url = $2
        WHERE id = $1
        RETURNING id, patient_id, doctor_id, scheduled_at::text, status, duration_minutes, video_room_url, approved_at::text`,
-      [appointmentId, meetLink],
+      [appointmentId, videoRoomUrl],
     );
 
     await Promise.all([
@@ -399,6 +351,67 @@ export async function decideAppointment(
   ]);
 
   return rows[0];
+}
+
+export async function getAppointmentMeetingLink(
+  user: AuthUser,
+  appointmentId: string,
+) {
+  const appointmentResult = await pool.query<{
+    id: string;
+    patient_id: string;
+    doctor_id: string;
+    scheduled_at: string;
+    status: string;
+    duration_minutes: number;
+    video_room_url: string | null;
+    doctor_name: string;
+    patient_name: string;
+  }>(
+    `SELECT
+      a.id,
+      a.patient_id,
+      a.doctor_id,
+      a.scheduled_at::text,
+      a.status,
+      a.duration_minutes,
+      a.video_room_url,
+      doctor.name AS doctor_name,
+      patient.name AS patient_name
+     FROM appointments a
+     JOIN users doctor ON doctor.id = a.doctor_id
+     JOIN users patient ON patient.id = a.patient_id
+     WHERE a.id = $1
+       AND (a.doctor_id = $2 OR a.patient_id = $2)
+     LIMIT 1`,
+    [appointmentId, user.id],
+  );
+
+  const appointment = appointmentResult.rows[0];
+
+  if (!appointment) {
+    throw createHttpError(404, "Appointment not found");
+  }
+
+  if (appointment.status !== "confirmed") {
+    throw createHttpError(409, "Meeting links are only available for confirmed appointments");
+  }
+
+  if (appointment.video_room_url) {
+    return { video_room_url: appointment.video_room_url };
+  }
+
+  const meetLink = buildFallbackMeetingUrl(appointment.id);
+
+  const { rows } = await pool.query(
+    `UPDATE appointments
+     SET video_room_url = $2
+     WHERE id = $1
+     RETURNING video_room_url`,
+    [appointment.id, meetLink],
+  );
+
+  return { video_room_url: rows[0]?.video_room_url ?? meetLink };
 }
 
 export async function cancelAppointment(
@@ -460,6 +473,96 @@ export async function cancelAppointment(
       user.id,
       "appointment_cancelled",
       `You cancelled appointment ${appointment.id}.`,
+    ),
+  ]);
+
+  return rows[0];
+}
+
+export async function rescheduleAppointment(
+  patientUser: AuthUser,
+  appointmentId: string,
+  input: { scheduled_at?: string; duration_minutes?: number },
+) {
+  const scheduledAtIso = input.scheduled_at;
+  const duration = Number(input.duration_minutes ?? 30);
+
+  if (!scheduledAtIso) {
+    throw createHttpError(400, "scheduled_at is required");
+  }
+
+  if (!Number.isFinite(duration) || duration <= 0) {
+    throw createHttpError(400, "duration_minutes must be a positive number");
+  }
+
+  const appointmentResult = await pool.query<{
+    id: string;
+    patient_id: string;
+    doctor_id: string;
+    status: string;
+    doctor_name: string;
+  }>(
+    `SELECT
+      a.id,
+      a.patient_id,
+      a.doctor_id,
+      a.status,
+      doctor.name AS doctor_name
+     FROM appointments a
+     JOIN users doctor ON doctor.id = a.doctor_id
+     WHERE a.id = $1 AND a.patient_id = $2
+     LIMIT 1`,
+    [appointmentId, patientUser.id],
+  );
+
+  const appointment = appointmentResult.rows[0];
+
+  if (!appointment) {
+    throw createHttpError(404, "Appointment not found");
+  }
+
+  if (!['pending', 'confirmed'].includes(appointment.status)) {
+    throw createHttpError(
+      409,
+      "Only pending or confirmed appointments can be rescheduled",
+    );
+  }
+
+  await assertDoctorAvailable(
+    appointment.doctor_id,
+    scheduledAtIso,
+    duration,
+    appointment.id,
+  );
+
+  const { rows } = await pool.query(
+    `UPDATE appointments
+     SET
+       scheduled_at = $2::timestamptz,
+       duration_minutes = $3,
+       status = 'pending',
+       approved_at = NULL,
+       rejected_at = NULL,
+       rejection_reason = NULL,
+       video_room_url = NULL,
+       cancelled_by = NULL,
+       cancelled_at = NULL,
+       completed_at = NULL
+     WHERE id = $1
+     RETURNING id, patient_id, doctor_id, scheduled_at::text, status, duration_minutes, video_room_url`,
+    [appointmentId, scheduledAtIso, duration],
+  );
+
+  await Promise.all([
+    createNotification(
+      appointment.doctor_id,
+      "appointment_rescheduled",
+      `Appointment ${appointment.id} was rescheduled by ${patientUser.name} and needs your confirmation.`,
+    ),
+    createNotification(
+      patientUser.id,
+      "appointment_rescheduled",
+      `Your appointment with Dr. ${appointment.doctor_name} was rescheduled and is awaiting confirmation.`,
     ),
   ]);
 

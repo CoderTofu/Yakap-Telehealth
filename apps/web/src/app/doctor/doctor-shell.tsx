@@ -7,12 +7,14 @@ import {
   Users,
   Bell,
   UserRound,
+  Clock
 } from "lucide-react";
 import { AppShell, type NavItem } from "@/components/shared/app-shell";
 
 export const DOC_NAV: NavItem[] = [
   { to: "/doctor/dashboard", label: "Dashboard", icon: CalendarDays },
   { to: "/doctor/appointments", label: "Appointments", icon: ClipboardList },
+  { to: "/doctor/schedule", label: "My Schedule", icon: Clock },
   { to: "/doctor/patients", label: "Patients", icon: Users },
   { to: "/doctor/profile", label: "Profile", icon: UserRound },
   { to: "/doctor/notifications", label: "Notifications", icon: Bell },

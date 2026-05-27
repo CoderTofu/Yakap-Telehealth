@@ -30,6 +30,10 @@ const yakapDatabaseUser = "yakap";
 
 const plainTextPassword = "password123";
 
+function buildFallbackMeetingUrl(appointmentId: string) {
+  return `https://meet.jit.si/yakap-${appointmentId}`;
+}
+
 const users: UserSeed[] = [
   {
     id: randomUUID(),
@@ -79,7 +83,7 @@ const appointments: AppointmentSeed[] = [
     doctorId: doctorUsers[0].id,
     scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
     status: "confirmed",
-    videoRoomUrl: "https://meet.example.com/yakap/maya-lara",
+    videoRoomUrl: buildFallbackMeetingUrl("maya-lara"),
   },
   {
     id: randomUUID(),
@@ -87,7 +91,7 @@ const appointments: AppointmentSeed[] = [
     doctorId: doctorUsers[1].id,
     scheduledAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
     status: "completed",
-    videoRoomUrl: "https://meet.example.com/yakap/noah-ethan",
+    videoRoomUrl: buildFallbackMeetingUrl("noah-ethan"),
   },
   {
     id: randomUUID(),

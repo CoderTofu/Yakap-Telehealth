@@ -98,4 +98,4 @@ After connecting, expand `Schemas > public > Tables` to browse `users`, `patient
 
 ## Today's Implementation Notes
 
-For a full summary of the frontend and backend logic built and refactored today, see [docs/implementation-2026-05-26.md](docs/implementation-2026-05-26.md).
+For the latest full summary of the frontend, backend, database, architecture, and dependencies, see [docs/implementation-2026-05-27.md](docs/implementation-2026-05-27.md).

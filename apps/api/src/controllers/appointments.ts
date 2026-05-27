@@ -9,6 +9,8 @@ import {
   deleteConsultationNote,
   getAppointmentNotes,
   listOwnAppointments,
+  getAppointmentMeetingLink,
+  rescheduleAppointment,
   updateConsultationNote,
 } from "../services/appointments";
 
@@ -118,6 +120,64 @@ export async function cancelAppointmentHandler(
       { id: req.user!.id, role: req.user!.role, name: req.user!.name },
       req.params.id,
       typeof req.body?.reason === "string" ? req.body.reason : undefined,
+    );
+
+    return res.json({ data });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function rescheduleAppointmentHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  if (!ensureUser(req, res)) return;
+
+  if (req.user!.role !== "patient") {
+    return res
+      .status(403)
+      .json({ error: { message: "Only patients can reschedule appointments" } });
+  }
+
+  try {
+    const data = await rescheduleAppointment(
+      { id: req.user!.id, role: req.user!.role, name: req.user!.name },
+      req.params.id,
+      {
+        scheduled_at:
+          typeof req.body?.scheduled_at === "string"
+            ? req.body.scheduled_at
+            : undefined,
+        duration_minutes:
+          typeof req.body?.duration_minutes === "number"
+            ? req.body.duration_minutes
+            : Number(req.body?.duration_minutes),
+      },
+    );
+
+    return res.json({ data });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function getAppointmentMeetingLinkHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  if (!ensureUser(req, res)) return;
+
+  try {
+    const data = await getAppointmentMeetingLink(
+      {
+        id: req.user!.id,
+        role: req.user!.role,
+        name: req.user!.name,
+      },
+      req.params.id,
     );
 
     return res.json({ data });

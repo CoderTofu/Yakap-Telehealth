@@ -66,7 +66,7 @@ export const APPOINTMENTS: AppointmentSummary[] = [
     status: "confirmed",
     date: "2026-05-27",
     time: "9:00 AM",
-    meetUrl: "https://meet.google.com/example-cardio-1",
+    meetUrl: "https://meet.jit.si/yakap-a1",
   },
   {
     id: "a2",
@@ -92,7 +92,7 @@ export const APPOINTMENTS: AppointmentSummary[] = [
     status: "confirmed",
     date: "2026-05-26",
     time: "10:45 AM",
-    meetUrl: "https://meet.google.com/example-cardio-2",
+    meetUrl: "https://meet.jit.si/yakap-a4",
   },
   {
     id: "a5",

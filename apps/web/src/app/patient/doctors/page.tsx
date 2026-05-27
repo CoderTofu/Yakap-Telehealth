@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Search, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+// import { Textarea } from "@/components/ui/textarea";
 import { YakapAvatar } from "@/components/shared/avatar";
 import { SPECIALTIES } from "@/lib/appConfig";
 import { cn } from "@/lib/utils";
@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 export default function FindDoctors() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
-  const [symptoms, setSymptoms] = useState("");
+  // const [symptoms, setSymptoms] = useState("");
   const [highlight, setHighlight] = useState<string[]>([]);
   const [doctors, setDoctors] = useState<any[]>([]);
 
@@ -59,12 +59,12 @@ export default function FindDoctors() {
     );
   }
 
-  function aiRecommend() {
-    if (!symptoms.trim()) return;
-    const picks = ["Cardiology", "General Medicine"];
-    setHighlight(picks);
-    setSelected(picks);
-  }
+  // function aiRecommend() {
+  //   if (!symptoms.trim()) return;
+  //   const picks = ["Cardiology", "General Medicine"];
+  //   setHighlight(picks);
+  //   setSelected(picks);
+  // }
 
   function numToWeek(num: number) {
     const week = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -75,8 +75,8 @@ export default function FindDoctors() {
     <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
       {/* Left filters */}
       <aside className="space-y-4">
-        {/* AI symptom search */}
-        <div className="rounded-xl border border-border bg-surface p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+        {/* TODO: AI symptom search */}
+        {/* <div className="rounded-xl border border-border bg-surface p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary-mid" />
             <h3 className="text-sm font-semibold text-text-primary">
@@ -96,7 +96,7 @@ export default function FindDoctors() {
           >
             Get AI Recommendation
           </Button>
-        </div>
+        </div> */}
 
         <div className="rounded-xl border border-border bg-surface p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
           <div className="relative">
@@ -147,10 +147,12 @@ export default function FindDoctors() {
           </select>
 
           <div className="mt-5 flex gap-2">
-            <Button className="flex-1 bg-primary hover:bg-primary-mid">
+            {/* TODO: Fix Logic */}
+            {/* <Button className="flex-1 bg-primary hover:bg-primary-mid">
               Apply
-            </Button>
+            </Button> */}
             <Button
+              className="cursor-pointer"
               variant="ghost"
               onClick={() => {
                 setSelected([]);

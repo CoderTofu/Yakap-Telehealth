@@ -13,8 +13,8 @@ export const SPECIALTIES = [
 
 export type Status = "pending" | "confirmed" | "cancelled" | "completed";
 
-export function initials(name: string) {
-  return name
+export function initials(name?: string | null) {
+  return (name ?? "")
     .replace(/^Dr\.?\s+/i, "")
     .split(" ")
     .map((s) => s[0])

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Award, BadgeCheck, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,8 +13,9 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { YakapAvatar } from "@/components/shared/avatar";
-import { getDoctor } from "@/lib/mock-data";
+import type { Doctor } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
+import { useParams } from "next/navigation";
 
 function buildWeek() {
   const today = new Date();
@@ -39,13 +40,57 @@ const SLOTS = [
 ];
 
 export default function DoctorDetail() {
-  //   const { id } = Route.useParams();
-  //   const navigate = useNavigate();
-  const doctor = getDoctor("d4");
+  const params = useParams<Record<string, string | string[]>>();
+  const idParam = params.id ?? params["id.tsx"];
+  const id = Array.isArray(idParam) ? idParam[0] : idParam;
+  const [doctor, setDoctor] = useState<Doctor | null>(null);
   const week = buildWeek();
   const [day, setDay] = useState(0);
   const [slot, setSlot] = useState<string | null>(null);
   const [confirm, setConfirm] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+
+    let mounted = true;
+    async function fetchDoctors() {
+      try {
+        const apiBase = process.env.NEXT_PUBLIC_API_URL;
+        const url = `${apiBase}/api/v1/doctors/${id}`;
+        const res = await fetch(url);
+        const json = await res.json();
+        const item = json?.data ?? json?.item ?? null;
+
+        if (
+          mounted &&
+          item &&
+          typeof item === "object" &&
+          !Array.isArray(item)
+        ) {
+          setDoctor({
+            id: String(item.id ?? id),
+            name: String(item.name ?? "Unknown doctor"),
+            specialty: String(item.specialization ?? item.specialty ?? ""),
+            bio: String(item.bio ?? ""),
+            experience: Number(item.years_exp ?? item.experience ?? 0),
+            license: String(item.license_number ?? item.license ?? ""),
+            fee: Number(item.consultation_fee ?? item.fee ?? 0),
+            availableDays: Array.isArray(item.availableDays)
+              ? item.availableDays
+              : [],
+            avatarColor: String(item.avatarColor ?? "#0B4F71"),
+          });
+        }
+      } catch (err) {
+        // swallow and keep empty list (UI will show 0 results)
+        console.error("failed to fetch doctor", err);
+      }
+    }
+    fetchDoctors();
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
 
   if (!doctor)
     return (

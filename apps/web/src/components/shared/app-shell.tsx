@@ -66,7 +66,7 @@ export function AppShell({
       {isSidebarOpen ? (
         <button
           type="button"
-          className="fixed inset-0 z-30 bg-black/30 lg:hidden"
+          className="fixed inset-0 z-30 bg-black/30 lg:hidden "
           aria-label="Close sidebar"
           onClick={() => setIsSidebarOpen(false)}
         />
@@ -85,7 +85,7 @@ export function AppShell({
           <button
             type="button"
             onClick={() => setIsSidebarOpen(false)}
-            className="ml-auto rounded-md p-1.5 text-text-secondary hover:bg-muted hover:text-text-primary lg:hidden"
+            className="ml-auto rounded-md p-1.5 text-text-secondary hover:bg-muted hover:text-text-primary lg:hidden cursor-pointer"
             aria-label="Close sidebar"
           >
             <X className="h-4 w-4" />
@@ -154,7 +154,7 @@ export function AppShell({
             <button
               type="button"
               onClick={() => setIsSidebarOpen((prev) => !prev)}
-              className="rounded-md p-2 text-text-secondary hover:bg-muted hover:text-text-primary lg:hidden"
+              className="rounded-md p-2 text-text-secondary hover:bg-muted hover:text-text-primary lg:hidden cursor-pointer"
               aria-label="Toggle sidebar"
               aria-expanded={isSidebarOpen}
             >

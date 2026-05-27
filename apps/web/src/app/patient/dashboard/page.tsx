@@ -1,33 +1,87 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   CheckCircle2,
   ClipboardList,
+  Loader2,
   Pill,
   Sparkles,
   Video,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 
 import { YakapAvatar } from "@/components/shared/avatar";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  APPOINTMENTS,
-  DOCTORS,
-  formatDate,
-  getDoctor,
-  type DoctorSummary,
-} from "@/lib/dashboard-data";
+import { apiRequest } from "@/lib/api-client";
+
+type CurrentUser = {
+  id: string;
+  name: string;
+};
+
+type AppointmentItem = {
+  id: string;
+  doctor_id: string;
+  scheduled_at: string;
+  status: "pending" | "confirmed" | "cancelled" | "completed";
+  doctor_name?: string;
+  video_room_url?: string | null;
+};
+
+type MedicalRecord = {
+  id: string;
+  diagnosis: string | null;
+  scheduled_at: string;
+  doctor_name: string;
+  specialization: string | null;
+};
+
+type DoctorSummary = {
+  id: string;
+  name: string;
+  specialization: string;
+  avatar_url: string | null;
+};
+
+function formatDate(iso: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: "Asia/Manila",
+  }).format(new Date(iso));
+}
+
+function formatTime(iso: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Manila",
+  }).format(new Date(iso));
+}
+
+function colorFromName(name: string) {
+  let hash = 0;
+  for (let index = 0; index < name.length; index += 1) {
+    hash = name.charCodeAt(index) + ((hash << 5) - hash);
+  }
+
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue} 65% 35%)`;
+}
 
 export default function PatientDashboard() {
   const router = useRouter();
-  const [user, setUser] = useState<any | null>();
+  const [user, setUser] = useState<CurrentUser | null>(null);
+  const [appointments, setAppointments] = useState<AppointmentItem[] | null>(null);
+  const [records, setRecords] = useState<MedicalRecord[] | null>(null);
+  const [allDoctors, setAllDoctors] = useState<DoctorSummary[]>([]);
   const [symptoms, setSymptoms] = useState("");
   const [recs, setRecs] = useState<DoctorSummary[]>([]);
 
@@ -40,30 +94,77 @@ export default function PatientDashboard() {
     }
   }, []);
 
-  if (!user) {
+  useEffect(() => {
+    let mounted = true;
+
+    async function fetchDashboardData() {
+      try {
+        const [appointmentsJson, recordsJson, doctorsJson] = await Promise.all([
+          apiRequest<{ data: AppointmentItem[] }>("/api/v1/appointments/me"),
+          apiRequest<{ data: MedicalRecord[] }>("/api/v1/patients/me/records"),
+          apiRequest<{ data: { items: DoctorSummary[] } }>("/api/v1/doctors", {}, { auth: false }),
+        ]);
+
+        if (mounted) {
+          setAppointments(Array.isArray(appointmentsJson.data) ? appointmentsJson.data : []);
+          setRecords(Array.isArray(recordsJson.data) ? recordsJson.data : []);
+          setAllDoctors(Array.isArray(doctorsJson.data?.items) ? doctorsJson.data.items : []);
+        }
+      } catch (error) {
+        console.error("failed to fetch patient dashboard data", error);
+        if (mounted) {
+          setAppointments([]);
+          setRecords([]);
+          setAllDoctors([]);
+        }
+      }
+    }
+
+    void fetchDashboardData();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const loading = user === null || appointments === null || records === null;
+
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-sm text-text-muted">Loading...</div>
+        <div className="flex items-center gap-2 text-sm text-text-muted">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading dashboard...
+        </div>
       </div>
     );
   }
 
-  const upcoming = APPOINTMENTS.filter(
+  if (!user) {
+    return null;
+  }
+
+  const upcoming = appointments.filter(
     (appointment) =>
-      appointment.patientId === user.id &&
       (appointment.status === "confirmed" || appointment.status === "pending"),
   ).slice(0, 3);
 
-  const records = APPOINTMENTS.filter(
-    (appointment) =>
-      appointment.patientId === user.id && appointment.status === "completed",
-  ).slice(0, 3);
+  const recentRecords = records.slice(0, 3);
+
+  const completedCount = useMemo(
+    () => appointments.filter((appointment) => appointment.status === "completed").length,
+    [appointments],
+  );
+
+  const activePrescriptions = useMemo(
+    () => records.filter((record) => !!record.diagnosis).length,
+    [records],
+  );
 
   const stats = [
-    { label: "Total Appointments", value: 12, icon: CalendarDays },
+    { label: "Total Appointments", value: appointments.length, icon: CalendarDays },
     { label: "Upcoming", value: upcoming.length, icon: ClipboardList },
-    { label: "Completed", value: records.length + 6, icon: CheckCircle2 },
-    { label: "Active Prescriptions", value: 2, icon: Pill },
+    { label: "Completed", value: completedCount, icon: CheckCircle2 },
+    { label: "Active Prescriptions", value: activePrescriptions, icon: Pill },
   ];
 
   const hour = new Date().getHours();
@@ -72,7 +173,19 @@ export default function PatientDashboard() {
 
   function handleAiSearch() {
     if (!symptoms.trim()) return;
-    setRecs(DOCTORS.slice(0, 2));
+    const searchTerms = symptoms
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean);
+
+    const matches = allDoctors
+      .filter((doctor) => {
+        const haystack = `${doctor.name} ${doctor.specialization}`.toLowerCase();
+        return searchTerms.some((term) => haystack.includes(term));
+      })
+      .slice(0, 3);
+
+    setRecs(matches.length > 0 ? matches : allDoctors.slice(0, 3));
   }
 
   function handleLogout() {
@@ -97,7 +210,7 @@ export default function PatientDashboard() {
           </p>
         </div>
         <Button asChild className="bg-primary hover:bg-primary-mid">
-          <Link href="/register">Book a Consultation</Link>
+          <Link href="/patient/doctors">Book a Consultation</Link>
         </Button>
       </div>
 
@@ -127,7 +240,7 @@ export default function PatientDashboard() {
               Upcoming appointments
             </h3>
             <Link
-              href="/register"
+              href="/patient/appointments"
               className="text-sm font-medium text-primary hover:underline"
             >
               View all
@@ -140,9 +253,7 @@ export default function PatientDashboard() {
               </li>
             )}
             {upcoming.map((appointment) => {
-              const doctor = getDoctor(appointment.doctorId);
-
-              if (!doctor) return null;
+              const doctorName = appointment.doctor_name ?? "Doctor";
 
               return (
                 <li
@@ -150,33 +261,43 @@ export default function PatientDashboard() {
                   className="flex items-center gap-4 px-5 py-4"
                 >
                   <YakapAvatar
-                    name={doctor.name}
-                    color={doctor.avatarColor}
+                    name={doctorName}
+                    color={colorFromName(doctorName)}
                     size={42}
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="truncate font-medium text-text-primary">
-                        {doctor.name}
+                        {doctorName}
                       </span>
                       <StatusBadge status={appointment.status} />
                     </div>
                     <div className="text-sm text-text-secondary">
-                      {doctor.specialty} · {formatDate(appointment.date)} ·{" "}
-                      {appointment.time}
+                      {formatDate(appointment.scheduled_at)} · {formatTime(appointment.scheduled_at)}
                     </div>
                   </div>
-                  {appointment.status === "confirmed" && appointment.meetUrl ? (
+                  {appointment.status === "confirmed" ? (
                     <Button
                       size="sm"
                       className="bg-primary hover:bg-primary-mid"
-                      onClick={() => window.open(appointment.meetUrl, "_blank")}
+                      onClick={async () => {
+                        try {
+                          const json = await apiRequest<{ data: { video_room_url: string } }>(
+                            `/api/v1/appointments/${appointment.id}/meeting`,
+                          );
+                          if (json.data?.video_room_url) {
+                            window.open(json.data.video_room_url, "_blank");
+                          }
+                        } catch (error) {
+                          alert(error instanceof Error ? error.message : "Failed to open meeting");
+                        }
+                      }}
                     >
                       <Video className="h-4 w-4" /> Join
                     </Button>
                   ) : (
                     <Button size="sm" variant="outline" asChild>
-                      <Link href="/register">Details</Link>
+                      <Link href="/patient/appointments">Details</Link>
                     </Button>
                   )}
                 </li>
@@ -217,7 +338,7 @@ export default function PatientDashboard() {
                 >
                   <YakapAvatar
                     name={doctor.name}
-                    color={doctor.avatarColor}
+                    color={colorFromName(doctor.name)}
                     size={34}
                   />
                   <div className="min-w-0 flex-1">
@@ -225,11 +346,11 @@ export default function PatientDashboard() {
                       {doctor.name}
                     </div>
                     <div className="text-xs text-text-secondary">
-                      {doctor.specialty}
+                      {doctor.specialization}
                     </div>
                   </div>
                   <Button asChild size="sm" variant="outline">
-                    <Link href="/register">View</Link>
+                    <Link href={`/patient/doctors/${doctor.id}`}>View</Link>
                   </Button>
                 </li>
               ))}
@@ -244,7 +365,7 @@ export default function PatientDashboard() {
             Recent medical records
           </h3>
           <Link
-            href="/register"
+            href="/patient/records"
             className="text-sm font-medium text-primary hover:underline"
           >
             View all
@@ -256,31 +377,28 @@ export default function PatientDashboard() {
               No records yet.
             </li>
           )}
-          {records.map((record) => {
-            const doctor = getDoctor(record.doctorId);
-
-            if (!doctor) return null;
-
+          {recentRecords.map((record) => {
             return (
               <li key={record.id} className="flex items-center gap-4 px-5 py-4">
                 <YakapAvatar
-                  name={doctor.name}
-                  color={doctor.avatarColor}
+                  name={record.doctor_name}
+                  color={colorFromName(record.doctor_name)}
                   size={36}
                 />
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-medium text-text-primary">
-                    {doctor.name} · {doctor.specialty}
+                    {record.doctor_name}
+                    {record.specialization ? ` · ${record.specialization}` : ""}
                   </div>
                   <div className="truncate text-sm text-text-secondary">
-                    {record.notes?.diagnosis ?? "—"}
+                    {record.diagnosis ?? "-"}
                   </div>
                 </div>
                 <div className="text-xs text-text-muted">
-                  {formatDate(record.date)}
+                  {formatDate(record.scheduled_at)}
                 </div>
                 <Button asChild size="sm" variant="ghost">
-                  <Link href="/register">View</Link>
+                  <Link href="/patient/records">View</Link>
                 </Button>
               </li>
             );

@@ -1,19 +1,82 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { ChevronDown, FileText } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronDown, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
-import { APPOINTMENTS, formatDate, getDoctor } from "@/lib/mock-data";
+import { apiRequest } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
+type MedicalRecord = {
+  id: string;
+  appointment_id: string;
+  subjective: string | null;
+  diagnosis: string | null;
+  prescription: string | null;
+  created_at: string;
+  scheduled_at: string;
+  doctor_name: string;
+  specialization: string | null;
+};
+
+function formatDate(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "Unknown date";
+
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "Asia/Manila",
+  }).format(date);
+}
+
 export default function Records() {
-  const records = APPOINTMENTS.filter(
-    (a) => a.patientId === "p1" && a.status === "completed",
-  );
-  const [openId, setOpenId] = useState<string | null>(records[0]?.id ?? null);
+  const [records, setRecords] = useState<MedicalRecord[] | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function fetchRecords() {
+      try {
+        const json = await apiRequest<{ data: MedicalRecord[] }>(
+          "/api/v1/patients/me/records",
+        );
+
+        if (mounted) {
+          const nextRecords = Array.isArray(json.data) ? json.data : [];
+          setRecords(nextRecords);
+          setOpenId(nextRecords[0]?.id ?? null);
+        }
+      } catch (error) {
+        console.error("failed to fetch medical records", error);
+        if (mounted) {
+          setRecords([]);
+          setOpenId(null);
+        }
+      }
+    }
+
+    void fetchRecords();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  if (records === null) {
+    return (
+      <div className="rounded-xl border border-border bg-surface">
+        <div className="flex items-center justify-center gap-2 px-6 py-16 text-sm text-text-secondary">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading medical records...
+        </div>
+      </div>
+    );
+  }
 
   if (records.length === 0) {
     return (
@@ -37,7 +100,6 @@ export default function Records() {
       <div className="absolute left-3 top-0 bottom-0 w-px bg-border" />
       <ul className="space-y-4">
         {records.map((r) => {
-          const doc = getDoctor(r.doctorId)!;
           const open = openId === r.id;
           return (
             <li key={r.id} className="relative pl-10">
@@ -49,17 +111,17 @@ export default function Records() {
                 >
                   <div>
                     <div className="text-xs uppercase tracking-wide text-text-muted">
-                      {formatDate(r.date)}
+                      {formatDate(r.scheduled_at)}
                     </div>
                     <div className="mt-1 font-medium text-text-primary">
-                      {doc.name} · {doc.specialty}
+                      {r.doctor_name} {r.specialization ? `· ${r.specialization}` : ""}
                     </div>
                     <div className="mt-0.5 text-sm text-text-secondary">
-                      {r.notes?.diagnosis ?? "—"}
+                      {r.diagnosis ?? "-"}
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <StatusBadge status={r.status} />
+                    <StatusBadge status="completed" />
                     <ChevronDown
                       className={cn(
                         "h-4 w-4 transition-transform",
@@ -68,39 +130,22 @@ export default function Records() {
                     />
                   </div>
                 </button>
-                {open && r.notes && (
+                {open && (
                   <div className="space-y-4 border-t border-border bg-bg/40 p-5 text-sm">
                     <div>
                       <div className="text-xs uppercase tracking-wide text-text-muted">
                         Subjective findings
                       </div>
                       <p className="mt-1 text-text-primary">
-                        {r.notes.subjective}
+                        {r.subjective ?? "-"}
                       </p>
                     </div>
                     <div>
                       <div className="text-xs uppercase tracking-wide text-text-muted">
                         Prescription
                       </div>
-                      <ul className="mt-1 space-y-1">
-                        {r.notes.prescriptions.map((p, i) => (
-                          <li key={i} className="text-text-primary">
-                            <span className="font-medium">{p.name}</span>{" "}
-                            {p.dosage} · {p.frequency} ({p.duration})
-                          </li>
-                        ))}
-                      </ul>
+                      <p className="mt-1 text-text-primary">{r.prescription ?? "-"}</p>
                     </div>
-                    {r.notes.recommendations && (
-                      <div>
-                        <div className="text-xs uppercase tracking-wide text-text-muted">
-                          Recommendations
-                        </div>
-                        <p className="mt-1 text-text-primary">
-                          {r.notes.recommendations}
-                        </p>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>

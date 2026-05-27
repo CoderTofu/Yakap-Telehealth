@@ -36,6 +36,33 @@ function parseScheduledAtAsManila(iso: string) {
   return new Date(iso + "+08:00");
 }
 
+function formatNotificationSchedule(iso: string) {
+  const date = parseScheduledAtAsManila(iso);
+
+  if (Number.isNaN(date.getTime())) {
+    return "an unknown time";
+  }
+
+  const time = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Manila",
+  })
+    .format(date)
+    .replace(/\s/g, "")
+    .toLowerCase();
+
+  const calendarDate = new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "Asia/Manila",
+  }).format(date);
+
+  return `${time} ${calendarDate}`;
+}
+
 async function assertDoctorAvailable(
   doctorId: string,
   scheduledAtIso: string,
@@ -207,16 +234,18 @@ export async function createAppointment(
     [patientId, doctorId, scheduledAt, duration],
   );
 
+  const scheduledLabel = formatNotificationSchedule(rows[0].scheduled_at);
+
   await Promise.all([
     createNotification(
       doctorId,
       "appointment_pending",
-      `New appointment request from ${patientName}.`,
+      `New appointment request from ${patientName} scheduled for ${scheduledLabel}.`,
     ),
     createNotification(
       patientId,
       "appointment_pending",
-      `Appointment request sent to Dr. ${doctor.name}.`,
+      `Appointment request sent to Dr. ${doctor.name} for ${scheduledLabel}.`,
     ),
   ]);
 
@@ -294,6 +323,8 @@ export async function decideAppointment(
     throw createHttpError(409, "Only pending appointments can be decided");
   }
 
+  const scheduledLabel = formatNotificationSchedule(appointment.scheduled_at);
+
   if (action === "approve") {
     const videoRoomUrl = buildFallbackMeetingUrl(appointmentId);
 
@@ -314,12 +345,12 @@ export async function decideAppointment(
       createNotification(
         appointment.patient_id,
         "appointment_confirmed",
-        `Dr. ${doctorUser.name} approved your appointment.`,
+        `Dr. ${doctorUser.name} approved your appointment scheduled for ${scheduledLabel}.`,
       ),
       createNotification(
         doctorUser.id,
         "appointment_confirmed",
-        `You approved appointment ${appointment.id}.`,
+        `You approved an appointment from ${appointment.patient_name} scheduled for ${scheduledLabel}.`,
       ),
     ]);
 
@@ -341,12 +372,12 @@ export async function decideAppointment(
     createNotification(
       appointment.patient_id,
       "appointment_rejected",
-      `Dr. ${doctorUser.name} rejected your appointment request.`,
+      `Dr. ${doctorUser.name} rejected your appointment scheduled for ${scheduledLabel}.`,
     ),
     createNotification(
       doctorUser.id,
       "appointment_rejected",
-      `You rejected appointment ${appointment.id}.`,
+      `You rejected an appointment from ${appointment.patient_name} scheduled for ${scheduledLabel}.`,
     ),
   ]);
 
@@ -424,11 +455,23 @@ export async function cancelAppointment(
     patient_id: string;
     doctor_id: string;
     status: string;
+    scheduled_at: string;
+    doctor_name: string;
+    patient_name: string;
   }>(
-    `SELECT id, patient_id, doctor_id, status
-     FROM appointments
+    `SELECT
+      a.id,
+      a.patient_id,
+      a.doctor_id,
+      a.status,
+      a.scheduled_at::text,
+      doctor.name AS doctor_name,
+      patient.name AS patient_name
+     FROM appointments a
+     JOIN users doctor ON doctor.id = a.doctor_id
+     JOIN users patient ON patient.id = a.patient_id
      WHERE id = $1
-       AND (patient_id = $2 OR doctor_id = $2)
+       AND (a.patient_id = $2 OR a.doctor_id = $2)
      LIMIT 1`,
     [appointmentId, user.id],
   );
@@ -462,17 +505,28 @@ export async function cancelAppointment(
     appointment.patient_id === user.id
       ? appointment.doctor_id
       : appointment.patient_id;
+  const scheduledLabel = formatNotificationSchedule(appointment.scheduled_at);
+
+  const counterpartMessage =
+    user.role === "doctor"
+      ? `Dr. ${user.name} cancelled your appointment scheduled for ${scheduledLabel}.`
+      : `${user.name} cancelled your appointment scheduled for ${scheduledLabel}.`;
+
+  const actorMessage =
+    user.role === "doctor"
+      ? `You cancelled an appointment from ${appointment.patient_name} scheduled for ${scheduledLabel}.`
+      : `You cancelled your appointment with Dr. ${appointment.doctor_name} scheduled for ${scheduledLabel}.`;
 
   await Promise.all([
     createNotification(
       counterpartId,
       "appointment_cancelled",
-      `${user.name} cancelled appointment ${appointment.id}.`,
+      counterpartMessage,
     ),
     createNotification(
       user.id,
       "appointment_cancelled",
-      `You cancelled appointment ${appointment.id}.`,
+      actorMessage,
     ),
   ]);
 
@@ -553,16 +607,18 @@ export async function rescheduleAppointment(
     [appointmentId, scheduledAtIso, duration],
   );
 
+  const scheduledLabel = formatNotificationSchedule(rows[0].scheduled_at);
+
   await Promise.all([
     createNotification(
       appointment.doctor_id,
       "appointment_rescheduled",
-      `Appointment ${appointment.id} was rescheduled by ${patientUser.name} and needs your confirmation.`,
+      `An appointment from ${patientUser.name} was rescheduled to ${scheduledLabel} and needs your confirmation.`,
     ),
     createNotification(
       patientUser.id,
       "appointment_rescheduled",
-      `Your appointment with Dr. ${appointment.doctor_name} was rescheduled and is awaiting confirmation.`,
+      `Your appointment with Dr. ${appointment.doctor_name} was rescheduled to ${scheduledLabel} and is awaiting confirmation.`,
     ),
   ]);
 
@@ -580,10 +636,12 @@ export async function completeAppointment(
     scheduled_at: string;
     duration_minutes: number;
     status: string;
+    patient_name: string;
   }>(
-    `SELECT id, patient_id, doctor_id, scheduled_at::text, duration_minutes, status
-     FROM appointments
-     WHERE id = $1 AND doctor_id = $2
+    `SELECT a.id, a.patient_id, a.doctor_id, a.scheduled_at::text, a.duration_minutes, a.status, p.name AS patient_name
+     FROM appointments a
+     JOIN users p ON p.id = a.patient_id
+     WHERE a.id = $1 AND a.doctor_id = $2
      LIMIT 1`,
     [appointmentId, doctorUser.id],
   );
@@ -613,6 +671,8 @@ export async function completeAppointment(
     );
   }
 
+  const scheduledLabel = formatNotificationSchedule(appointment.scheduled_at);
+
   const { rows } = await pool.query(
     `UPDATE appointments
      SET status = 'completed', completed_at = NOW()
@@ -625,12 +685,12 @@ export async function completeAppointment(
     createNotification(
       appointment.patient_id,
       "appointment_completed",
-      `Appointment ${appointment.id} has been marked completed by Dr. ${doctorUser.name}.`,
+      `Dr. ${doctorUser.name} marked your appointment scheduled for ${scheduledLabel} as completed.`,
     ),
     createNotification(
       doctorUser.id,
       "appointment_completed",
-      `You completed appointment ${appointment.id}.`,
+      `You completed an appointment with ${appointment.patient_name} scheduled for ${scheduledLabel}.`,
     ),
   ]);
 
@@ -646,8 +706,9 @@ export async function createConsultationNote(
     id: string;
     patient_id: string;
     status: string;
+    scheduled_at: string;
   }>(
-    `SELECT id, patient_id, status
+    `SELECT id, patient_id, status, scheduled_at::text
      FROM appointments
      WHERE id = $1 AND doctor_id = $2
      LIMIT 1`,
@@ -666,6 +727,8 @@ export async function createConsultationNote(
       "Consultation notes can only be added to completed appointments",
     );
   }
+
+  const scheduledLabel = formatNotificationSchedule(appointment.scheduled_at);
 
   const { rows } = await pool.query(
     `INSERT INTO consultation_notes (
@@ -690,7 +753,7 @@ export async function createConsultationNote(
   await createNotification(
     appointment.patient_id,
     "consultation_note_created",
-    `A consultation note has been added for appointment ${appointment.id}.`,
+    `A consultation note has been added for your appointment scheduled for ${scheduledLabel}.`,
   );
 
   return rows[0];

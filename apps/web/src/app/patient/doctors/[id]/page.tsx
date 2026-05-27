@@ -95,7 +95,7 @@ function buildAvailabilityDays(fromIso: string, toIso: string) {
 
 export default function DoctorDetail() {
   const params = useParams<Record<string, string | string[]>>();
-  const idParam = params.id ?? params["id.tsx"];
+  const idParam = params.id ?? params["id"];
   const id = Array.isArray(idParam) ? idParam[0] : idParam;
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [availability, setAvailability] = useState<DoctorAvailability | null>(

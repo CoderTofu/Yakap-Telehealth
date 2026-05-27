@@ -139,7 +139,7 @@ export function AppShell({
             <button
               type="button"
               onClick={handleLogout}
-              className="rounded-md p-1.5 text-text-secondary hover:bg-muted hover:text-danger"
+              className="rounded-md p-1.5 text-text-secondary hover:bg-muted hover:text-danger cursor-pointer"
               aria-label="Logout"
             >
               <LogOut className="h-4 w-4" />

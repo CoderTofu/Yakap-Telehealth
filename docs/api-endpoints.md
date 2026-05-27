@@ -128,12 +128,14 @@ Query params:
 
 - `specialization` (string, optional)
 - `search` (string, optional; matches doctor name/specialization)
+- `day_of_week` (number 0..6, optional; filters doctors with a weekly schedule on that weekday)
 - `page` (number, optional, default `1`)
 - `limit` (number, optional, default `12`, max `100`)
 
 Response data:
 
 - `items`: doctor summaries
+- each item includes `schedule_days` (array of weekday numbers 0..6)
 - `pagination`: `page`, `limit`, `total`, `total_pages`
 
 App usage:

@@ -8,11 +8,13 @@ export type DoctorSummary = {
   bio: string | null;
   years_exp: number | null;
   consultation_fee: string | null;
+  schedule_days: number[];
 };
 
 export type ListDoctorFilters = {
   specialization?: string;
   search?: string;
+  day_of_week?: number;
   page: number;
   limit: number;
 };
@@ -71,6 +73,19 @@ export async function listDoctors(filters: ListDoctorFilters) {
     );
   }
 
+  if (typeof filters.day_of_week === "number" && Number.isInteger(filters.day_of_week)) {
+    values.push(filters.day_of_week);
+    conditions.push(
+      `EXISTS (
+        SELECT 1
+        FROM doctor_schedules ds
+        WHERE ds.doctor_id = u.id
+          AND ds.is_blocked = FALSE
+          AND ds.day_of_week = $${values.length}
+      )`,
+    );
+  }
+
   const whereClause = `WHERE ${conditions.join(" AND ")}`;
 
   const countResult = await pool.query<{ total: string }>(
@@ -94,7 +109,16 @@ export async function listDoctors(filters: ListDoctorFilters) {
 			dp.specialization,
 			dp.bio,
 			dp.years_exp,
-			dp.consultation_fee::text
+    dp.consultation_fee::text,
+    COALESCE(
+      ARRAY(
+        SELECT DISTINCT ds.day_of_week
+        FROM doctor_schedules ds
+        WHERE ds.doctor_id = u.id AND ds.is_blocked = FALSE
+        ORDER BY ds.day_of_week
+      ),
+      '{}'::smallint[]
+    )::int[] AS schedule_days
 		 FROM users u
 		 JOIN doctor_profiles dp ON dp.user_id = u.id
 		 ${whereClause}

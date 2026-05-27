@@ -19,6 +19,11 @@ export async function listDoctorsHandler(
   try {
     const page = Math.max(1, Number(req.query.page ?? 1));
     const limit = Math.min(100, Math.max(1, Number(req.query.limit ?? 12)));
+    const dayOfWeekRaw = req.query.day_of_week;
+    const dayOfWeek =
+      typeof dayOfWeekRaw === "string" && dayOfWeekRaw !== ""
+        ? Number(dayOfWeekRaw)
+        : undefined;
 
     const data = await listDoctors({
       specialization:
@@ -27,6 +32,10 @@ export async function listDoctorsHandler(
           : undefined,
       search:
         typeof req.query.search === "string" ? req.query.search : undefined,
+      day_of_week:
+        typeof dayOfWeek === "number" && Number.isInteger(dayOfWeek)
+          ? dayOfWeek
+          : undefined,
       page,
       limit,
     });

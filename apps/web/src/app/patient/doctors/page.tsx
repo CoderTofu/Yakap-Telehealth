@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { YakapAvatar } from "@/components/shared/avatar";
-import { DOCTORS, SPECIALTIES } from "@/lib/mock-data";
+import { SPECIALTIES } from "@/lib/appConfig";
 import { cn } from "@/lib/utils";
 
 export default function FindDoctors() {
@@ -15,15 +15,43 @@ export default function FindDoctors() {
   const [selected, setSelected] = useState<string[]>([]);
   const [symptoms, setSymptoms] = useState("");
   const [highlight, setHighlight] = useState<string[]>([]);
+  const [doctors, setDoctors] = useState<any[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function fetchDoctors() {
+      try {
+        const apiBase = process.env.NEXT_PUBLIC_API_URL;
+        const url = `${apiBase}/api/v1/doctors`;
+        const res = await fetch(url);
+        const json = await res.json();
+        // Support { data: { items } } or { items }
+        const items = json?.data?.items ?? json?.items ?? [];
+        console.log(items);
+        if (mounted) setDoctors(items);
+      } catch (err) {
+        // swallow and keep empty list (UI will show 0 results)
+        console.error("failed to fetch doctors", err);
+      }
+    }
+    fetchDoctors();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const results = useMemo(() => {
-    return DOCTORS.filter((d) => {
+    return doctors.filter((d) => {
       if (query && !d.name.toLowerCase().includes(query.toLowerCase()))
         return false;
-      if (selected.length && !selected.includes(d.specialty)) return false;
+      console.log(selected.length && !selected.includes(d.specialization));
+      console.log(selected.length);
+      console.log(!selected.includes(d.specialization));
+
+      if (selected.length && !selected.includes(d.specialization)) return false;
       return true;
     });
-  }, [query, selected]);
+  }, [doctors, query, selected]);
 
   function toggle(name: string) {
     setSelected((s) =>
@@ -36,6 +64,11 @@ export default function FindDoctors() {
     const picks = ["Cardiology", "General Medicine"];
     setHighlight(picks);
     setSelected(picks);
+  }
+
+  function numToWeek(num: number) {
+    const week = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    return week[num];
   }
 
   return (
@@ -81,10 +114,10 @@ export default function FindDoctors() {
           </h4>
           <ul className="max-h-[280px] space-y-1 overflow-y-auto pr-1">
             {SPECIALTIES.map((s) => {
-              const checked = selected.includes(s.name);
-              const isHighlight = highlight.includes(s.name);
+              const checked = selected.includes(s.value);
+              const isHighlight = highlight.includes(s.value);
               return (
-                <li key={s.name}>
+                <li key={s.value}>
                   <label
                     className={cn(
                       "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted",
@@ -94,10 +127,10 @@ export default function FindDoctors() {
                     <input
                       type="checkbox"
                       checked={checked}
-                      onChange={() => toggle(s.name)}
+                      onChange={() => toggle(s.value)}
                       className="h-4 w-4 rounded border-border accent-[#0B4F71]"
                     />
-                    <span className="text-text-primary">{s.name}</span>
+                    <span className="text-text-primary">{s.label}</span>
                   </label>
                 </li>
               );
@@ -152,8 +185,8 @@ export default function FindDoctors() {
                 <YakapAvatar name={d.name} color={d.avatarColor} size={52} />
                 <div className="min-w-0 flex-1">
                   <h3 className="font-medium text-text-primary">{d.name}</h3>
-                  <span className="mt-1 inline-flex rounded-full bg-primary-light px-2 py-0.5 text-xs font-medium text-primary">
-                    {d.specialty}
+                  <span className="mt-1 inline-flex rounded-full bg-primary-light px-2 py-0.5 text-xs font-medium text-primary capitalize">
+                    {d.specialization}
                   </span>
                 </div>
               </div>
@@ -161,15 +194,15 @@ export default function FindDoctors() {
                 {d.bio}
               </p>
               <div className="mt-3 text-xs text-text-muted">
-                {d.experience} years experience
+                {d.years_exp} years experience
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5">
-                {d.availableDays.map((day) => (
+                {d.schedule_days?.map((day: number) => (
                   <span
                     key={day}
                     className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-text-secondary"
                   >
-                    {day}
+                    {numToWeek(day)}
                   </span>
                 ))}
               </div>
@@ -178,9 +211,7 @@ export default function FindDoctors() {
                   asChild
                   className="w-full bg-primary hover:bg-primary-mid"
                 >
-                  <Link href="/patient/doctors/$id" params={{ id: d.id }}>
-                    View Profile
-                  </Link>
+                  <Link href={`/patient/doctors/${d.id}`}>View Profile</Link>
                 </Button>
               </div>
             </article>

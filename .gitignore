@@ -28,3 +28,6 @@ Thumbs.db
 
 # Docker volumes
 postgres_data/
+
+#secret
+apps/api/client-secret.json

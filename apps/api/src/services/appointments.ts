@@ -1,3 +1,8 @@
+import { access } from "node:fs/promises";
+import path from "node:path";
+
+import { SpacesServiceClient } from "@google-apps/meet";
+import { authenticate } from "@google-cloud/local-auth";
 import pool from "../db/pool";
 import { createNotification } from "./notifications";
 
@@ -30,6 +35,11 @@ function formatGoogleDate(date: Date) {
 }
 
 const MANILA_OFFSET_MS = 8 * 60 * 60 * 1000;
+const MEET_SCOPES = ["https://www.googleapis.com/auth/meetings.space.created"];
+const MEET_CREDENTIALS_PATH = path.join(
+  process.cwd(),
+  process.env.GOOGLE_MEET_CREDENTIALS_PATH || "client-secret.json",
+);
 
 function parseScheduledAtAsManila(iso: string) {
   if (typeof iso !== "string") return new Date(NaN);
@@ -58,6 +68,24 @@ function buildGoogleCalendarLink(input: {
   });
 
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+async function createGoogleMeetLink() {
+  try {
+    await access(MEET_CREDENTIALS_PATH);
+  } catch {
+    return null;
+  }
+
+  const authClient = await authenticate({
+    scopes: MEET_SCOPES,
+    keyfilePath: MEET_CREDENTIALS_PATH,
+  });
+
+  const meetClient = new SpacesServiceClient({ authClient } as never);
+  const [space] = await meetClient.createSpace({});
+
+  return space.meetingUri ?? null;
 }
 
 async function assertDoctorAvailable(
@@ -307,13 +335,15 @@ export async function decideAppointment(
   }
 
   if (action === "approve") {
-    const calendarLink = buildGoogleCalendarLink({
-      startsAt: new Date(appointment.scheduled_at),
-      durationMinutes: appointment.duration_minutes,
-      doctorName: doctorUser.name,
-      patientName: appointment.patient_name,
-      appointmentId: appointment.id,
-    });
+    const meetLink =
+      (await createGoogleMeetLink()) ??
+      buildGoogleCalendarLink({
+        startsAt: new Date(appointment.scheduled_at),
+        durationMinutes: appointment.duration_minutes,
+        doctorName: doctorUser.name,
+        patientName: appointment.patient_name,
+        appointmentId: appointment.id,
+      });
 
     const { rows } = await pool.query(
       `UPDATE appointments
@@ -325,7 +355,7 @@ export async function decideAppointment(
          video_room_url = $2
        WHERE id = $1
        RETURNING id, patient_id, doctor_id, scheduled_at::text, status, duration_minutes, video_room_url, approved_at::text`,
-      [appointmentId, calendarLink],
+      [appointmentId, meetLink],
     );
 
     await Promise.all([

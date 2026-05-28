@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 type AppointmentItem = {
   id: string;
@@ -203,6 +204,8 @@ export default function DoctorAppointments() {
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   {appointment.status === "confirmed" ? (
+                    <>
+                    
                     <Button
                       size="sm"
                       className="bg-primary hover:bg-primary-mid"
@@ -210,6 +213,16 @@ export default function DoctorAppointments() {
                     >
                       <Video className="h-4 w-4" /> Open Meet
                     </Button>
+                    <Link href={`/doctor/appointments/${appointment.id}`}> 
+                      <Button size="sm" variant="outline">Notes</Button> 
+                    </Link>
+                    </>
+                  ) : null}
+
+                  {appointment.status === "completed" ? (
+                    <Link href={`/doctor/appointments/${appointment.id}`}>
+                      <Button size="sm" variant="outline">Notes</Button>
+                    </Link>
                   ) : null}
 
                   {appointment.status === "pending" ? (

@@ -139,6 +139,7 @@ export const PATIENTS: Patient[] = [
   { id: "p1", name: "Juan Dela Cruz", dob: "1990-03-15", phone: "+63 917 123 4567", weight: 72, height: 175, history: "No known allergies. Mild hypertension.", avatarColor: "#0B4F71" },
   { id: "p2", name: "Sofia Reyes", dob: "1995-08-22", phone: "+63 917 987 6543", weight: 58, height: 162, history: "Seasonal asthma.", avatarColor: "#10B981" },
   { id: "p3", name: "Miguel Torres", dob: "1985-11-04", phone: "+63 918 555 0102", weight: 80, height: 178, avatarColor: "#1A7AAF" },
+  
 ];
 
 function daysFromNow(n: number) {
@@ -182,6 +183,7 @@ export const NOTIFICATIONS: Notification[] = [
   { id: "n2", type: "reminder", message: "Reminder: consultation with Dr. Patricia Lim tomorrow at 2:30 PM.", time: "5 hours ago", unread: true },
   { id: "n3", type: "booking", message: "Your booking request with Dr. James Cruz is pending confirmation.", time: "Yesterday", unread: false },
   { id: "n4", type: "cancelled", message: "Dr. Anna Reyes cancelled your appointment on May 12.", time: "3 days ago", unread: false },
+  
 ];
 
 export function getDoctor(id: string) {

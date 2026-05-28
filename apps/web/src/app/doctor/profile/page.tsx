@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiRequest } from "@/lib/api-client";
 import { Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,15 +12,32 @@ import { SPECIALTIES } from "@/lib/appConfig";
 
 export default function DoctorProfile() {
   const [user, setUser] = useState<any | null>(null);
-  const [bio, setBio] = useState(
-    "Board-certified cardiologist with deep experience in preventive heart care and arrhythmia management.",
-  );
+  const [bio, setBio] = useState("");
+  const [specialization, setSpecialization] = useState<string | null>(null);
+  const [license, setLicense] = useState<string | null>(null);
+  const [yearsExp, setYearsExp] = useState<number | null>(null);
+  const [fee, setFee] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem("authUser");
       setUser(raw ? JSON.parse(raw) : null);
-      console.log(raw);
+      void (async function load() {
+        try {
+          const json = await apiRequest<{ data: any }>("/api/v1/profile/me");
+          const data = json.data;
+      console.log(data)
+          setUser((prev: any) => ({ ...(prev ?? {}), ...data }));
+          setBio(data?.doctor_profile?.bio ?? "");
+          setSpecialization(data?.doctor_profile?.specialization ?? "");
+          setLicense(data?.doctor_profile?.license_number ?? "");
+          setYearsExp(data?.doctor_profile?.years_exp ?? null);
+          setFee(data?.doctor_profile?.consultation_fee ? Number(data.doctor_profile.consultation_fee) : null);
+        } catch (err) {
+          // ignore
+        }
+      })();
     } catch (err) {
       setUser(null);
     }
@@ -47,7 +65,8 @@ export default function DoctorProfile() {
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label>Specialization</Label>
-            <select className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+            <select value={specialization ?? ""} onChange={(e) => setSpecialization(e.target.value)} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+              <option value="">Select specialization</option>
               {SPECIALTIES.map((s) => (
                 <option key={s.label} value={s.value}>
                   {s.label}
@@ -57,15 +76,15 @@ export default function DoctorProfile() {
           </div>
           <div className="space-y-1.5">
             <Label>License number</Label>
-            <Input defaultValue="PRC-0123456" />
+            <Input value={license ?? ""} onChange={(e) => setLicense(e.target.value)} />
           </div>
           <div className="space-y-1.5">
             <Label>Years of experience</Label>
-            <Input type="number" defaultValue={12} />
+            <Input type="number" value={yearsExp ?? ""} onChange={(e) => setYearsExp(Number(e.target.value))} />
           </div>
           <div className="space-y-1.5">
             <Label>Consultation fee (PHP)</Label>
-            <Input type="number" defaultValue={1500} />
+            <Input type="number" value={fee ?? ""} onChange={(e) => setFee(Number(e.target.value))} />
           </div>
         </div>
 
@@ -82,8 +101,32 @@ export default function DoctorProfile() {
           />
         </div>
 
-        <Button className="mt-6 bg-primary hover:bg-primary-mid">
-          Save Changes
+        <Button className="mt-6 bg-primary hover:bg-primary-mid" disabled={saving} onClick={async () => {
+          setSaving(true);
+          try {
+            const payload: any = {
+              name: user.name,
+              doctor_profile: {
+                specialization: specialization ?? null,
+                license_number: license ?? null,
+                bio: bio ?? null,
+                years_exp: yearsExp ?? null,
+                consultation_fee: fee ?? null,
+              },
+            };
+            const json = await apiRequest<{ data: any }>("/api/v1/profile/me", {
+              method: "PATCH",
+              body: JSON.stringify(payload),
+            });
+            setUser((prev: any) => ({ ...(prev ?? {}), ...json.data }));
+            alert("Profile updated");
+          } catch (err) {
+            alert(err instanceof Error ? err.message : "Failed to save profile");
+          } finally {
+            setSaving(false);
+          }
+        }}>
+          {saving ? "Saving..." : "Save Changes"}
         </Button>
       </section>
     </div>

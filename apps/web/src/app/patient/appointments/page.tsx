@@ -378,6 +378,11 @@ export default function PatientAppointments() {
                       </Button>
                     </>
                   ) : null}
+                  {tab === "past" && appointment.status === "completed" ? (
+                    <Link href={`/patient/appointments/${appointment.id}`}>
+                      <Button size="sm" variant="outline">Notes</Button>
+                    </Link>
+                  ) : null}
                 </div>
               </li>
             );

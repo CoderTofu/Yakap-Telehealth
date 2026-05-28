@@ -7,18 +7,36 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { YakapAvatar } from "@/components/shared/avatar";
 import { useState, useEffect } from "react";
+import { apiRequest } from "@/lib/api-client";
 
 export default function PatientProfile() {
   const [user, setUser] = useState<any | null>(null);
-  const [bio, setBio] = useState(
-    "Board-certified cardiologist with deep experience in preventive heart care and arrhythmia management.",
-  );
+  const [dob, setDob] = useState<string | null>(null);
+  const [phone, setPhone] = useState<string | null>(null);
+  const [weight, setWeight] = useState<number | null>(null);
+  const [height, setHeight] = useState<number | null>(null);
+  const [history, setHistory] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem("authUser");
-      setUser(raw ? JSON.parse(raw) : null);
-      console.log(raw);
+      const parsed = raw ? JSON.parse(raw) : null;
+      setUser(parsed);
+      void (async function load() {
+        try {
+          const json = await apiRequest<{ data: any }>("/api/v1/profile/me");
+          const data = json.data;
+          setUser((prev: any) => ({ ...(prev ?? {}), ...data }));
+          setDob(data?.patient_profile?.date_of_birth ?? null);
+          setPhone(data?.phone ?? null);
+          setWeight(data?.patient_profile?.weight_kg ?? null);
+          setHeight(data?.patient_profile?.height_cm ?? null);
+          setHistory(data?.patient_profile?.medical_history ?? null);
+        } catch (err) {
+          // ignore
+        }
+      })();
     } catch (err) {
       setUser(null);
     }
@@ -42,23 +60,23 @@ export default function PatientProfile() {
         <div className="mt-6 space-y-4">
           <div className="space-y-1.5">
             <Label>Full name</Label>
-            <Input defaultValue={user.name} />
+            <Input value={user.name} onChange={(e) => setUser((u: any) => ({ ...(u ?? {}), name: e.target.value }))} />
           </div>
           <div className="space-y-1.5">
             <Label>Email</Label>
             <Input
               readOnly
-              defaultValue={user.email}
+              value={user.email}
               className="bg-muted text-text-muted"
             />
           </div>
           <div className="space-y-1.5">
             <Label>Phone number</Label>
-            <Input defaultValue="+63 917 123 4567" />
+            <Input value={phone ?? ""} onChange={(e) => setPhone(e.target.value)} />
           </div>
           <div className="space-y-1.5">
             <Label>Date of birth</Label>
-            <Input type="date" defaultValue="1990-03-15" />
+            <Input type="date" value={dob ?? ""} onChange={(e) => setDob(e.target.value)} />
           </div>
         </div>
         <Button className="mt-6 bg-primary hover:bg-primary-mid">
@@ -74,23 +92,44 @@ export default function PatientProfile() {
         <div className="mt-6 grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label>Weight (kg)</Label>
-            <Input type="number" defaultValue={72} />
+            <Input type="number" value={weight ?? ""} onChange={(e) => setWeight(Number(e.target.value))} />
           </div>
           <div className="space-y-1.5">
             <Label>Height (cm)</Label>
-            <Input type="number" defaultValue={175} />
+            <Input type="number" value={height ?? ""} onChange={(e) => setHeight(Number(e.target.value))} />
           </div>
         </div>
         <div className="mt-4 space-y-1.5">
           <Label>Medical history</Label>
-          <Textarea
-            rows={6}
-            defaultValue="No known allergies. Mild hypertension."
-          />
+          <Textarea rows={6} value={history ?? ""} onChange={(e) => setHistory(e.target.value)} />
         </div>
-        <Button className="mt-6 bg-primary hover:bg-primary-mid">
-          Save Changes
-        </Button>
+        <div className="mt-6">
+          <Button className="bg-primary hover:bg-primary-mid" disabled={saving} onClick={async () => {
+            setSaving(true);
+            try {
+              const payload: any = {
+                name: user.name,
+                phone: phone ?? null,
+                patient_profile: {
+                  date_of_birth: dob ?? null,
+                  weight_kg: weight ?? null,
+                  height_cm: height ?? null,
+                  medical_history: history ?? null,
+                },
+              };
+              const json = await apiRequest<{ data: any }>("/api/v1/profile/me", {
+                method: "PATCH",
+                body: JSON.stringify(payload),
+              });
+              setUser((prev: any) => ({ ...(prev ?? {}), ...json.data }));
+              alert("Profile updated");
+            } catch (err) {
+              alert(err instanceof Error ? err.message : "Failed to save profile");
+            } finally {
+              setSaving(false);
+            }
+          }}>{saving ? "Saving..." : "Save Changes"}</Button>
+        </div>
       </section>
     </div>
   );

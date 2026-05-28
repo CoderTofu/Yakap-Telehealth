@@ -236,7 +236,7 @@ export default function FindDoctors() {
                 </div>
               </div>
               <p className="mt-3 h-10 overflow-hidden text-sm leading-5 text-text-secondary line-clamp-2">
-                {d.bio}
+                {d.bio === null || d.bio === "" ? "Doctor has yet to configure their bio." : d.bio}
               </p>
               <div className="mt-3 text-xs text-text-muted">
                 {d.years_exp} years experience

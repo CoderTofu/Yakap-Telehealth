@@ -5,10 +5,11 @@ import {
   patchMyProfileHandler,
 } from "../controllers/profile";
 import { auth } from "../middleware/auth";
+import { asyncHandler } from "../utils/asyncHandler";
 
 const router = Router();
 
-router.get("/me", auth, getMyProfileHandler);
-router.patch("/me", auth, patchMyProfileHandler);
+router.get("/me", auth, asyncHandler(getMyProfileHandler));
+router.patch("/me", auth, asyncHandler(patchMyProfileHandler));
 
 export default router;

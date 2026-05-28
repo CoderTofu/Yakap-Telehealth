@@ -14,20 +14,21 @@ import {
   updateAppointmentNoteHandler,
 } from "../controllers/appointments";
 import { auth } from "../middleware/auth";
+import { asyncHandler } from "../utils/asyncHandler";
 
 const router = Router();
 
-router.post("/", auth, createAppointmentHandler);
-router.get("/me", auth, listMyAppointmentsHandler);
-router.patch("/:id/decision", auth, decideAppointmentHandler);
-router.patch("/:id/reschedule", auth, rescheduleAppointmentHandler);
-router.patch("/:id/cancel", auth, cancelAppointmentHandler);
-router.patch("/:id/complete", auth, completeAppointmentHandler);
-router.get("/:id/meeting", auth, getAppointmentMeetingLinkHandler);
+router.post("/", auth, asyncHandler(createAppointmentHandler));
+router.get("/me", auth, asyncHandler(listMyAppointmentsHandler));
+router.patch("/:id/decision", auth, asyncHandler(decideAppointmentHandler));
+router.patch("/:id/reschedule", auth, asyncHandler(rescheduleAppointmentHandler));
+router.patch("/:id/cancel", auth, asyncHandler(cancelAppointmentHandler));
+router.patch("/:id/complete", auth, asyncHandler(completeAppointmentHandler));
+router.get("/:id/meeting", auth, asyncHandler(getAppointmentMeetingLinkHandler));
 
-router.post("/:id/notes", auth, createAppointmentNoteHandler);
-router.get("/:id/notes", auth, getAppointmentNotesHandler);
-router.patch("/:id/notes/:noteId", auth, updateAppointmentNoteHandler);
-router.delete("/:id/notes/:noteId", auth, deleteAppointmentNoteHandler);
+router.post("/:id/notes", auth, asyncHandler(createAppointmentNoteHandler));
+router.get("/:id/notes", auth, asyncHandler(getAppointmentNotesHandler));
+router.patch("/:id/notes/:noteId", auth, asyncHandler(updateAppointmentNoteHandler));
+router.delete("/:id/notes/:noteId", auth, asyncHandler(deleteAppointmentNoteHandler));
 
 export default router;

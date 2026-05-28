@@ -8,29 +8,32 @@ import {
 } from "../services/auth";
 import { SPECIALTY_VALUES, USER_ROLES } from "../constants";
 
-export async function login(req: Request, res: Response) {
+export async function login(req: Request, res: Response): Promise<void> {
   const { email, password } = req.body as {
     email?: string;
     password?: string;
   };
 
   if (!email) {
-    return res.status(400).json({ error: { message: "Email is required" } });
+    res.status(400).json({ error: { message: "Email is required" } });
+    return;
   }
 
   if (!password) {
-    return res.status(400).json({ error: { message: "Password is required" } });
+    res.status(400).json({ error: { message: "Password is required" } });
+    return;
   }
 
   const user = await verifyLoginPassword(email, password);
 
   if (!user) {
-    return res.status(401).json({ error: { message: "Invalid credentials" } });
+    res.status(401).json({ error: { message: "Invalid credentials" } });
+    return;
   }
 
   const token = issueAuthToken(user);
 
-  return res.json({
+  res.json({
     data: {
       token,
       user,
@@ -38,15 +41,16 @@ export async function login(req: Request, res: Response) {
   });
 }
 
-export function me(req: Request, res: Response) {
+export function me(req: Request, res: Response): void {
   if (!req.user) {
-    return res.status(401).json({ error: { message: "Unauthorized" } });
+    res.status(401).json({ error: { message: "Unauthorized" } });
+    return;
   }
 
-  return res.json({ data: req.user });
+  res.json({ data: req.user });
 }
 
-export async function register(req: Request, res: Response) {
+export async function register(req: Request, res: Response): Promise<void> {
   const {
     email,
     password,
@@ -79,13 +83,15 @@ export async function register(req: Request, res: Response) {
   };
 
   if (!email) {
-    return res.status(400).json({ error: { message: "Email is required" } });
+    res.status(400).json({ error: { message: "Email is required" } });
+    return;
   }
 
   const existingUser = await findUserByEmail(email);
 
   if (existingUser) {
-    return res.status(409).json({ error: { message: "Email already exists" } });
+    res.status(409).json({ error: { message: "Email already exists" } });
+    return;
   }
 
   const normalizedRole = role?.trim();
@@ -94,21 +100,25 @@ export async function register(req: Request, res: Response) {
     !normalizedRole ||
     !USER_ROLES.includes(normalizedRole as (typeof USER_ROLES)[number])
   ) {
-    return res
+    res
       .status(400)
       .json({ error: { message: "Role must be patient or doctor" } });
+    return;
   }
 
   if (!password) {
-    return res.status(400).json({ error: { message: "Password is required" } });
+    res.status(400).json({ error: { message: "Password is required" } });
+    return;
   }
 
   if (!name) {
-    return res.status(400).json({ error: { message: "Name is required" } });
+    res.status(400).json({ error: { message: "Name is required" } });
+    return;
   }
 
   if (!phone) {
-    return res.status(400).json({ error: { message: "Phone is required" } });
+    res.status(400).json({ error: { message: "Phone is required" } });
+    return;
   }
 
   if (normalizedRole === "doctor") {
@@ -121,15 +131,17 @@ export async function register(req: Request, res: Response) {
         normalizedSpecialization as (typeof SPECIALTY_VALUES)[number],
       )
     ) {
-      return res
+      res
         .status(400)
         .json({ error: { message: "Specialization must be one of the allowed options" } });
+      return;
     }
 
     if (!license_number) {
-      return res
+      res
         .status(400)
         .json({ error: { message: "License number is required" } });
+      return;
     }
   }
 
@@ -146,7 +158,7 @@ export async function register(req: Request, res: Response) {
 
   const token = issueAuthToken(user);
 
-  return res.status(201).json({
+  res.status(201).json({
     data: {
       token,
       user,

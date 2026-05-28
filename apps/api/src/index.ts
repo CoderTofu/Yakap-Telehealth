@@ -18,8 +18,39 @@ dotenv.config();
 const app = express();
 const port = Number(process.env.PORT || 4000);
 
+function getAllowedOrigins() {
+  const rawOrigins = [
+    process.env.CORS_ORIGIN,
+    process.env.FRONTEND_URL,
+    process.env.NEXT_PUBLIC_SITE_URL,
+  ]
+    .filter(Boolean)
+    .flatMap((value) => String(value).split(","))
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return Array.from(new Set(rawOrigins));
+}
+
+const allowedOrigins = getAllowedOrigins();
+
 app.use(helmet());
-app.use(cors());
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.length === 0) {
+        return callback(null, true);
+      }
+
+      return callback(null, allowedOrigins.includes(origin));
+    },
+    credentials: true,
+  }),
+);
 app.use(morgan("dev"));
 app.use(express.json());
 

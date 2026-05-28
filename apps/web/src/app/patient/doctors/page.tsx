@@ -46,7 +46,7 @@ export default function FindDoctors() {
     }
   }
 
-  async function getOverview(text: string): Promise<Specialization> {
+  async function getSpecialization(text: string): Promise<Specialization> {
     return apiRequest<Specialization>("/api/v1/gemini", {
       method: "POST",
       body: JSON.stringify({ text }),
@@ -69,7 +69,7 @@ export default function FindDoctors() {
 
     try {
       setIsRecommending(true);
-      const overview = await getOverview(symptoms.trim());
+      const overview = await getSpecialization(symptoms.trim());
       const picks = overview.specialization ?? [];
 
       setSelected(picks);

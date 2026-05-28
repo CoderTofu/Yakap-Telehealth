@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { YakapAvatar } from "@/components/shared/avatar";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { SPECIALTIES } from "@/lib/appConfig";
 
 export default function DoctorProfile() {
@@ -18,6 +19,7 @@ export default function DoctorProfile() {
   const [yearsExp, setYearsExp] = useState<number | null>(null);
   const [fee, setFee] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -43,6 +45,33 @@ export default function DoctorProfile() {
     }
   }, []);
   if (!user) return null;
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const payload: any = {
+        name: user.name,
+        doctor_profile: {
+          specialization: specialization ?? null,
+          license_number: license ?? null,
+          bio: bio ?? null,
+          years_exp: yearsExp ?? null,
+          consultation_fee: fee ?? null,
+        },
+      };
+      const json = await apiRequest<{ data: any }>("/api/v1/profile/me", {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      });
+      setUser((prev: any) => ({ ...(prev ?? {}), ...json.data }));
+      alert("Profile updated");
+      setConfirmOpen(false);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to save profile");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -101,34 +130,20 @@ export default function DoctorProfile() {
           />
         </div>
 
-        <Button className="mt-6 bg-primary hover:bg-primary-mid" disabled={saving} onClick={async () => {
-          setSaving(true);
-          try {
-            const payload: any = {
-              name: user.name,
-              doctor_profile: {
-                specialization: specialization ?? null,
-                license_number: license ?? null,
-                bio: bio ?? null,
-                years_exp: yearsExp ?? null,
-                consultation_fee: fee ?? null,
-              },
-            };
-            const json = await apiRequest<{ data: any }>("/api/v1/profile/me", {
-              method: "PATCH",
-              body: JSON.stringify(payload),
-            });
-            setUser((prev: any) => ({ ...(prev ?? {}), ...json.data }));
-            alert("Profile updated");
-          } catch (err) {
-            alert(err instanceof Error ? err.message : "Failed to save profile");
-          } finally {
-            setSaving(false);
-          }
-        }}>
+        <Button className="mt-6 bg-primary hover:bg-primary-mid" disabled={saving} onClick={() => setConfirmOpen(true)}>
           {saving ? "Saving..." : "Save Changes"}
         </Button>
       </section>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Save profile changes?"
+        description="This will update your doctor profile details for patients to see."
+        confirmLabel="Save Changes"
+        confirmingLabel="Saving..."
+        isConfirming={saving}
+        onConfirm={handleSave}
+      />
     </div>
   );
 }

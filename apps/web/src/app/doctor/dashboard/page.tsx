@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { YakapAvatar } from "@/components/shared/avatar";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/api-client";
@@ -20,6 +21,12 @@ import { apiRequest } from "@/lib/api-client";
 export default function DoctorDashboard() {
   const [user, setUser] = useState<any | null>(null);
   const [appointments, setAppointments] = useState<any[] | null>(null);
+  const [decisionBusyId, setDecisionBusyId] = useState<string | null>(null);
+  const [pendingDecision, setPendingDecision] = useState<{
+    id: string;
+    patientName: string;
+    action: "approve" | "reject";
+  } | null>(null);
 
   useEffect(() => {
     try {
@@ -100,6 +107,33 @@ export default function DoctorDashboard() {
       day: "numeric",
       year: "numeric",
     }).format(d);
+  }
+
+  async function confirmDecision() {
+    if (!pendingDecision) return;
+
+    setDecisionBusyId(pendingDecision.id);
+    try {
+      await apiRequest(`/api/v1/appointments/${pendingDecision.id}/decision`, {
+        method: "PATCH",
+        body: JSON.stringify({ action: pendingDecision.action }),
+      });
+      const json = await apiRequest<{ data: any[] }>("/api/v1/appointments/me");
+      setAppointments(Array.isArray(json.data) ? json.data : []);
+      setPendingDecision(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : `Failed to ${pendingDecision.action}`);
+    } finally {
+      setDecisionBusyId(null);
+    }
+  }
+
+  function promptDecision(appointment: any, action: "approve" | "reject") {
+    setPendingDecision({
+      id: appointment.id,
+      patientName: appointment.patient_name ?? "Patient",
+      action,
+    });
   }
 
   const stats = [
@@ -193,27 +227,10 @@ export default function DoctorDashboard() {
                       </div>
                     </div>
                     <div className="mt-3 flex gap-2">
-                      <Button size="sm" className="flex-1 bg-primary hover:bg-primary-mid" onClick={async () => {
-                        try {
-                          await apiRequest(`/api/v1/appointments/${appointment.id}/decision`, { method: "PATCH", body: JSON.stringify({ action: "approve" }) });
-                          // refresh
-                          const json = await apiRequest<{ data: any[] }>("/api/v1/appointments/me");
-                          setAppointments(Array.isArray(json.data) ? json.data : []);
-                        } catch (err) {
-                          alert(err instanceof Error ? err.message : "Failed to approve");
-                        }
-                      }}>
+                      <Button size="sm" className="flex-1 bg-primary hover:bg-primary-mid" onClick={() => promptDecision(appointment, "approve")}>
                         Confirm
                       </Button>
-                      <Button size="sm" variant="outline" className="flex-1" onClick={async () => {
-                        try {
-                          await apiRequest(`/api/v1/appointments/${appointment.id}/decision`, { method: "PATCH", body: JSON.stringify({ action: "reject" }) });
-                          const json = await apiRequest<{ data: any[] }>("/api/v1/appointments/me");
-                          setAppointments(Array.isArray(json.data) ? json.data : []);
-                        } catch (err) {
-                          alert(err instanceof Error ? err.message : "Failed to reject");
-                        }
-                      }}>
+                      <Button size="sm" variant="outline" className="flex-1" onClick={() => promptDecision(appointment, "reject")}>
                         Decline
                       </Button>
                     </div>
@@ -232,6 +249,25 @@ export default function DoctorDashboard() {
           </div>
         </section>
       </div>
+
+      <ConfirmDialog
+        open={pendingDecision !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDecision(null);
+        }}
+        title={pendingDecision?.action === "reject" ? "Decline request?" : "Confirm request?"}
+        description={
+          pendingDecision?.action === "reject"
+            ? `This will decline ${pendingDecision?.patientName ?? "this patient"}'s appointment request.`
+            : `This will confirm ${pendingDecision?.patientName ?? "this patient"}'s appointment request.`
+        }
+        confirmLabel={pendingDecision?.action === "reject" ? "Decline" : "Confirm"}
+        confirmingLabel={pendingDecision?.action === "reject" ? "Declining..." : "Confirming..."}
+        cancelLabel="Go Back"
+        isConfirming={decisionBusyId === pendingDecision?.id}
+        intent={pendingDecision?.action === "reject" ? "destructive" : "default"}
+        onConfirm={confirmDecision}
+      />
     </div>
   );
 }

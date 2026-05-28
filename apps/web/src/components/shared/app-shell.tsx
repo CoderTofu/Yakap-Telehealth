@@ -5,6 +5,7 @@ import { Bell, LogOut, Menu, X, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "./logo";
+import { ConfirmDialog } from "./confirm-dialog";
 import { cn } from "@/lib/utils";
 
 type UserRole = "patient" | "doctor";
@@ -52,6 +53,7 @@ export function AppShell({
   const pathname = usePathname();
   const title = deriveTitle(pathname, nav);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
 
   useEffect(() => {
     setIsSidebarOpen(false);
@@ -138,7 +140,7 @@ export function AppShell({
             </div>
             <button
               type="button"
-              onClick={handleLogout}
+              onClick={() => setLogoutConfirmOpen(true)}
               className="rounded-md p-1.5 text-text-secondary hover:bg-muted hover:text-danger cursor-pointer"
               aria-label="Logout"
             >
@@ -194,6 +196,21 @@ export function AppShell({
 
         <main className="px-6 py-8 text-text-primary">{children}</main>
       </div>
+
+      <ConfirmDialog
+        open={logoutConfirmOpen}
+        onOpenChange={setLogoutConfirmOpen}
+        title="Sign out?"
+        description="You will need to log in again to access this account."
+        confirmLabel="Log out"
+        confirmingLabel="Logging out..."
+        cancelLabel="Stay signed in"
+        intent="destructive"
+        onConfirm={() => {
+          setLogoutConfirmOpen(false);
+          handleLogout();
+        }}
+      />
     </div>
   );
 }

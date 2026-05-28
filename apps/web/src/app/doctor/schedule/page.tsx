@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { CalendarDays, Loader2, Plus, Save } from "lucide-react";
 
 import { EmptyState } from "@/components/shared/empty-state";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,6 +59,8 @@ export default function DoctorSchedulePage() {
   const [blockStartTime, setBlockStartTime] = useState("");
   const [blockEndTime, setBlockEndTime] = useState("");
   const [blockReason, setBlockReason] = useState("");
+  const [weeklyConfirmOpen, setWeeklyConfirmOpen] = useState(false);
+  const [blockConfirmOpen, setBlockConfirmOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -144,11 +147,16 @@ export default function DoctorSchedulePage() {
       }
       setWeekly(nextWeekly);
       setBlocks(json.data.blocks ?? []);
+      setWeeklyConfirmOpen(false);
     } catch (error) {
       alert(error instanceof Error ? error.message : "Failed to save schedule");
     } finally {
       setSavingWeekly(false);
     }
+  }
+
+  function requestSaveWeeklySchedule() {
+    setWeeklyConfirmOpen(true);
   }
 
   async function addBlock() {
@@ -194,11 +202,21 @@ export default function DoctorSchedulePage() {
       setBlockStartTime("");
       setBlockEndTime("");
       setBlockReason("");
+      setBlockConfirmOpen(false);
     } catch (error) {
       alert(error instanceof Error ? error.message : "Failed to add block");
     } finally {
       setSavingBlock(false);
     }
+  }
+
+  function requestAddBlock() {
+    if (!blockDate || !blockStartTime || !blockEndTime) {
+      alert("Choose a date, start time, and end time for the block.");
+      return;
+    }
+
+    setBlockConfirmOpen(true);
   }
 
   return (
@@ -211,7 +229,7 @@ export default function DoctorSchedulePage() {
               Set the hours you are available for booking and add blocks for days off or breaks.
             </p>
           </div>
-          <Button onClick={saveWeeklySchedule} disabled={savingWeekly || loading} className="bg-primary hover:bg-primary-mid">
+          <Button onClick={requestSaveWeeklySchedule} disabled={savingWeekly || loading} className="bg-primary hover:bg-primary-mid">
             {savingWeekly ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Save weekly schedule
           </Button>
@@ -370,13 +388,35 @@ export default function DoctorSchedulePage() {
                 placeholder="Lunch break, family emergency, clinic closure..."
               />
             </div>
-            <Button onClick={addBlock} disabled={savingBlock} className="w-full bg-primary hover:bg-primary-mid">
+            <Button onClick={requestAddBlock} disabled={savingBlock} className="w-full bg-primary hover:bg-primary-mid">
               {savingBlock ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Add block
             </Button>
           </div>
         </div>
       </section>
+
+      <ConfirmDialog
+        open={weeklyConfirmOpen}
+        onOpenChange={setWeeklyConfirmOpen}
+        title="Save weekly schedule?"
+        description="This will update your recurring availability for new bookings."
+        confirmLabel="Save schedule"
+        confirmingLabel="Saving..."
+        isConfirming={savingWeekly}
+        onConfirm={saveWeeklySchedule}
+      />
+
+      <ConfirmDialog
+        open={blockConfirmOpen}
+        onOpenChange={setBlockConfirmOpen}
+        title="Add this blocked time?"
+        description="This will prevent patients from booking the selected hours."
+        confirmLabel="Add block"
+        confirmingLabel="Saving..."
+        isConfirming={savingBlock}
+        onConfirm={addBlock}
+      />
     </div>
   );
 }

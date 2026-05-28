@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { YakapAvatar } from "@/components/shared/avatar";
 import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/api-client";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 
 export default function PatientProfile() {
   const [user, setUser] = useState<any | null>(null);
@@ -17,6 +18,7 @@ export default function PatientProfile() {
   const [height, setHeight] = useState<number | null>(null);
   const [history, setHistory] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -42,6 +44,34 @@ export default function PatientProfile() {
     }
   }, []);
   if (!user) return null;
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const payload: any = {
+        name: user.name,
+        phone: phone ?? null,
+        patient_profile: {
+          date_of_birth: dob ?? null,
+          weight_kg: weight ?? null,
+          height_cm: height ?? null,
+          medical_history: history ?? null,
+        },
+      };
+      const json = await apiRequest<{ data: any }>("/api/v1/profile/me", {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      });
+      setUser((prev: any) => ({ ...(prev ?? {}), ...json.data }));
+      alert("Profile updated");
+      setConfirmOpen(false);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to save profile");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <div className="mx-auto grid max-w-4xl gap-6 lg:grid-cols-2">
       <section className="rounded-xl border border-border bg-surface p-6 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
@@ -79,7 +109,7 @@ export default function PatientProfile() {
             <Input type="date" value={dob ?? ""} onChange={(e) => setDob(e.target.value)} />
           </div>
         </div>
-        <Button className="mt-6 bg-primary hover:bg-primary-mid">
+        <Button className="mt-6 bg-primary hover:bg-primary-mid" onClick={() => setConfirmOpen(true)}>
           Save Changes
         </Button>
       </section>
@@ -104,33 +134,19 @@ export default function PatientProfile() {
           <Textarea rows={6} value={history ?? ""} onChange={(e) => setHistory(e.target.value)} />
         </div>
         <div className="mt-6">
-          <Button className="bg-primary hover:bg-primary-mid" disabled={saving} onClick={async () => {
-            setSaving(true);
-            try {
-              const payload: any = {
-                name: user.name,
-                phone: phone ?? null,
-                patient_profile: {
-                  date_of_birth: dob ?? null,
-                  weight_kg: weight ?? null,
-                  height_cm: height ?? null,
-                  medical_history: history ?? null,
-                },
-              };
-              const json = await apiRequest<{ data: any }>("/api/v1/profile/me", {
-                method: "PATCH",
-                body: JSON.stringify(payload),
-              });
-              setUser((prev: any) => ({ ...(prev ?? {}), ...json.data }));
-              alert("Profile updated");
-            } catch (err) {
-              alert(err instanceof Error ? err.message : "Failed to save profile");
-            } finally {
-              setSaving(false);
-            }
-          }}>{saving ? "Saving..." : "Save Changes"}</Button>
+          <Button className="bg-primary hover:bg-primary-mid" disabled={saving} onClick={() => setConfirmOpen(true)}>{saving ? "Saving..." : "Save Changes"}</Button>
         </div>
       </section>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Save profile changes?"
+        description="This will update your personal and health details."
+        confirmLabel="Save Changes"
+        confirmingLabel="Saving..."
+        isConfirming={saving}
+        onConfirm={handleSave}
+      />
     </div>
   );
 }

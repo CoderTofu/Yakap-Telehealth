@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, Save, Edit2, Trash2 } from "lucide-react";
 
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest } from "@/lib/api-client";
@@ -46,6 +47,13 @@ export default function AppointmentNotesPage() {
   const [notes, setNotes] = useState<Note[] | null>(null);
   const [appointment, setAppointment] = useState<AppointmentItem | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<
+    | { kind: "create" }
+    | { kind: "update"; noteId: string }
+    | { kind: "delete"; noteId: string }
+    | null
+  >(null);
 
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [subjective, setSubjective] = useState("");
@@ -150,7 +158,6 @@ export default function AppointmentNotesPage() {
   }
 
   async function handleDelete(noteId: string) {
-    if (!confirm("Delete this consultation note?")) return;
     setBusy(true);
     try {
       if (!canEdit) {
@@ -168,6 +175,60 @@ export default function AppointmentNotesPage() {
       setBusy(false);
     }
   }
+
+  async function handleConfirmAction() {
+    if (!pendingAction) return;
+
+    if (pendingAction.kind === "create") {
+      await handleCreate();
+    } else if (pendingAction.kind === "update") {
+      await handleUpdate(pendingAction.noteId);
+    } else if (pendingAction.kind === "delete") {
+      await handleDelete(pendingAction.noteId);
+    }
+
+    setConfirmOpen(false);
+    setPendingAction(null);
+  }
+
+  function promptCreate() {
+    setPendingAction({ kind: "create" });
+    setConfirmOpen(true);
+  }
+
+  function promptUpdate(noteId: string) {
+    setPendingAction({ kind: "update", noteId });
+    setConfirmOpen(true);
+  }
+
+  function promptDelete(noteId: string) {
+    setPendingAction({ kind: "delete", noteId });
+    setConfirmOpen(true);
+  }
+
+  const confirmTitle =
+    pendingAction?.kind === "delete"
+      ? "Delete consultation note?"
+      : pendingAction?.kind === "update"
+        ? "Save consultation note changes?"
+        : "Add consultation note?";
+
+  const confirmDescription =
+    pendingAction?.kind === "delete"
+      ? "This will permanently delete the consultation note and cannot be undone."
+      : pendingAction?.kind === "update"
+        ? "This will save the edited consultation note for the completed appointment."
+        : "This will create a consultation note for the completed appointment.";
+
+  const confirmLabel =
+    pendingAction?.kind === "delete"
+      ? "Delete Note"
+      : pendingAction?.kind === "update"
+        ? "Save"
+        : "Add Note";
+
+  const confirmingLabel =
+    pendingAction?.kind === "delete" ? "Deleting..." : "Saving...";
 
   return (
     <div className="space-y-4">
@@ -213,7 +274,7 @@ export default function AppointmentNotesPage() {
               }}>
                 <Edit2 className="h-4 w-4" /> Edit
               </Button>
-              <Button size="sm" variant="outline" className="text-danger hover:bg-danger-light hover:text-danger" onClick={() => void handleDelete(latest.id)}>
+              <Button size="sm" variant="outline" className="text-danger hover:bg-danger-light hover:text-danger" onClick={() => promptDelete(latest.id)}>
                 <Trash2 className="h-4 w-4" /> Delete
               </Button>
             </div>
@@ -234,11 +295,11 @@ export default function AppointmentNotesPage() {
             </div>
             <div className="flex gap-2">
               {editingNoteId ? (
-                <Button size="sm" className="bg-primary hover:bg-primary-mid" disabled={busy || !canEdit} onClick={() => void handleUpdate(editingNoteId)}>
+                <Button size="sm" className="bg-primary hover:bg-primary-mid" disabled={busy || !canEdit} onClick={() => promptUpdate(editingNoteId)}>
                   <Save className="h-4 w-4" /> {busy ? "Saving..." : "Save"}
                 </Button>
               ) : (
-                <Button size="sm" className="bg-primary hover:bg-primary-mid" disabled={busy || !canEdit} onClick={() => void handleCreate()}>
+                <Button size="sm" className="bg-primary hover:bg-primary-mid" disabled={busy || !canEdit} onClick={() => promptCreate()}>
                   <Save className="h-4 w-4" /> {busy ? "Saving..." : "Add Note"}
                 </Button>
               )}
@@ -260,6 +321,23 @@ export default function AppointmentNotesPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          setConfirmOpen(open);
+          if (!open) {
+            setPendingAction(null);
+          }
+        }}
+        title={confirmTitle}
+        description={confirmDescription}
+        confirmLabel={confirmLabel}
+        confirmingLabel={confirmingLabel}
+        intent={pendingAction?.kind === "delete" ? "destructive" : "default"}
+        isConfirming={busy}
+        onConfirm={handleConfirmAction}
+      />
     </div>
   );
 }

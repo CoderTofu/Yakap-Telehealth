@@ -3,17 +3,29 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import {
+  Bell,
   CalendarDays,
   ClipboardList,
-  Users,
-  Bell,
+  Clock,
+  FileText,
+  Search,
   UserRound,
-  Clock
+  Users,
 } from "lucide-react";
-import { AppShell, type NavItem } from "@/components/shared/app-shell";
+
+import { AppShell, type NavItem, type AppShellUser } from "./app-shell";
 import { apiRequest } from "@/lib/api-client";
 
-export const DOC_NAV: NavItem[] = [
+const PATIENT_NAV: NavItem[] = [
+  { to: "/patient/dashboard", label: "Dashboard", icon: CalendarDays },
+  { to: "/patient/doctors", label: "Find a Doctor", icon: Search },
+  { to: "/patient/appointments", label: "Appointments", icon: ClipboardList },
+  { to: "/patient/records", label: "Records", icon: FileText },
+  { to: "/patient/profile", label: "Profile", icon: UserRound },
+  { to: "/patient/notifications", label: "Notifications", icon: Bell },
+];
+
+const DOCTOR_NAV: NavItem[] = [
   { to: "/doctor/dashboard", label: "Dashboard", icon: CalendarDays },
   { to: "/doctor/appointments", label: "Appointments", icon: ClipboardList },
   { to: "/doctor/schedule", label: "My Schedule", icon: Clock },
@@ -22,15 +34,12 @@ export const DOC_NAV: NavItem[] = [
   { to: "/doctor/notifications", label: "Notifications", icon: Bell },
 ];
 
-export function DoctorShell({
+export function RoleShell({
   children,
   user,
 }: {
   children: React.ReactNode;
-  user: {
-    name: string;
-    role: "doctor";
-  };
+  user: AppShellUser;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -85,7 +94,12 @@ export function DoctorShell({
   }
 
   return (
-    <AppShell nav={DOC_NAV} user={user} unread={unread} onLogout={handleLogout}>
+    <AppShell
+      nav={user.role === "patient" ? PATIENT_NAV : DOCTOR_NAV}
+      user={user}
+      unread={unread}
+      onLogout={handleLogout}
+    >
       {children}
     </AppShell>
   );

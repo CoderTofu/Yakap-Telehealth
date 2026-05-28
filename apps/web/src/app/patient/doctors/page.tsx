@@ -2,22 +2,27 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-// import { Textarea } from "@/components/ui/textarea";
+import { Textarea } from "@/components/ui/textarea";
 import { YakapAvatar } from "@/components/shared/avatar";
 import { SPECIALTIES, DAYS } from "@/lib/appConfig";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/api-client";
 
+type Specialization = {
+  specialization?: string[];
+};
+
 export default function FindDoctors() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
-  // const [symptoms, setSymptoms] = useState("");
+  const [symptoms, setSymptoms] = useState("");
   const [highlight, setHighlight] = useState<string[]>([]);
   const [doctors, setDoctors] = useState<any[]>([]);
   const [availability, setAvailability] = useState<number>()
+  const [isRecommending, setIsRecommending] = useState(false);
 
   async function loadDoctors(search: string, specializations: string[], day: number = -1) {
     try {
@@ -41,6 +46,13 @@ export default function FindDoctors() {
     }
   }
 
+  async function getOverview(text: string): Promise<Specialization> {
+    return apiRequest<Specialization>("/api/v1/gemini", {
+      method: "POST",
+      body: JSON.stringify({ text }),
+    });
+  }
+
   useEffect(() => {
     void loadDoctors("", []);
   }, []);
@@ -51,12 +63,23 @@ export default function FindDoctors() {
     );
   }
 
-  // function aiRecommend() {
-  //   if (!symptoms.trim()) return;
-  //   const picks = ["Cardiology", "General Medicine"];
-  //   setHighlight(picks);
-  //   setSelected(picks);
-  // }
+  async function aiRecommend() {
+    if (!symptoms.trim()) return;
+    if (isRecommending) return;
+
+    try {
+      setIsRecommending(true);
+      const overview = await getOverview(symptoms.trim());
+      const picks = overview.specialization ?? [];
+
+      setSelected(picks);
+      await loadDoctors(query, picks, availability ?? -1);
+    } catch (error) {
+      console.error("failed to get AI recommendation", error);
+    } finally {
+      setIsRecommending(false);
+    }
+  }
 
   function numToWeek(num: number) {
     const week = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -90,7 +113,7 @@ export default function FindDoctors() {
       {/* Left filters */}
       <aside className="space-y-4">
         {/* TODO: AI symptom search */}
-        {/* <div className="rounded-xl border border-border bg-surface p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+        <div className="rounded-xl border border-border bg-surface p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary-mid" />
             <h3 className="text-sm font-semibold text-text-primary">
@@ -106,11 +129,12 @@ export default function FindDoctors() {
           />
           <Button
             className="mt-3 w-full bg-primary hover:bg-primary-mid"
+            disabled={isRecommending || !symptoms.trim()}
             onClick={aiRecommend}
           >
-            Get AI Recommendation
+            {isRecommending ? "Analyzing..." : "Get AI Recommendation"}
           </Button>
-        </div> */}
+        </div>
 
         <div className="rounded-xl border border-border bg-surface p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
           <div className="relative">

@@ -11,6 +11,7 @@ import doctorRoutes from "./routes/doctors";
 import notificationRoutes from "./routes/notifications";
 import patientRoutes from "./routes/patients";
 import profileRoutes from "./routes/profile";
+import geminiRoutes from "./routes/gemini"
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ app.use(morgan("dev"));
 app.use(express.json());
 
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/gemini", geminiRoutes);
 app.use("/api/v1/doctors", doctorRoutes);
 app.use("/api/v1/appointments", appointmentRoutes);
 app.use("/api/v1/profile", profileRoutes);

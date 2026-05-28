@@ -63,6 +63,7 @@ function formatNotificationSchedule(iso: string) {
   return `${time} ${calendarDate}`;
 }
 
+// Function to check if a doctor is available for a given time slot, considering their schedule, blocks, and existing appointments
 async function assertDoctorAvailable(
   doctorId: string,
   scheduledAtIso: string,
@@ -175,6 +176,7 @@ export async function createAppointment(
     throw createHttpError(400, "duration_minutes must be a positive number");
   }
 
+  // Look for the doctor for the appointment
   const doctorResult = await pool.query<{ id: string; name: string }>(
     `SELECT u.id, u.name
      FROM users u
@@ -189,13 +191,16 @@ export async function createAppointment(
     throw createHttpError(404, "Doctor not found");
   }
 
+  // Check if doctor is available
   await assertDoctorAvailable(doctorId, scheduledAt, duration);
 
+  // Look for the patient for the appointment
   const patientResult = await pool.query<{ id: string; name: string }>(
     `SELECT id, name FROM users WHERE id = $1 LIMIT 1`,
     [patient.id],
   );
 
+  // If patient is not found by ID, try to find by email
   const resolvedPatient =
     patientResult.rows[0] ||
     (patient.email
@@ -214,6 +219,7 @@ export async function createAppointment(
   const patientId = resolvedPatient.id;
   const patientName = resolvedPatient.name ?? "Patient";
 
+  // Create the appointment
   const { rows } = await pool.query(
     `INSERT INTO appointments (
       patient_id,
@@ -234,6 +240,7 @@ export async function createAppointment(
     [patientId, doctorId, scheduledAt, duration],
   );
 
+  // Create notifications for both doctor and patient
   const scheduledLabel = formatNotificationSchedule(rows[0].scheduled_at);
 
   await Promise.all([

@@ -7,6 +7,7 @@ const router = Router();
 
 router.post("/login", login);
 router.post("/register", register);
+// auth is used to verify the token and return 401 if invalid
 router.get("/me", auth, me);
 
 export default router;

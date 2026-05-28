@@ -1,16 +1,6 @@
 import type { Request, Response } from "express";
 import { SPECIALTY_VALUES } from "../constants";
 
-type GeminiResponse = {
-  candidates?: Array<{
-    content?: {
-      parts?: Array<{
-        text?: string;
-      }>;
-    };
-  }>;
-};
-
 type SpecializationResponse = {
   specialization: string[];
 };

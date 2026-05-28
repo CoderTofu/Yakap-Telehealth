@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Loader2, Video } from "lucide-react";
+import { CalendarDays, Loader2, Star, Video } from "lucide-react";
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { YakapAvatar } from "@/components/shared/avatar";
@@ -26,6 +26,7 @@ type AppointmentItem = {
   scheduled_at: string;
   duration_minutes: number;
   status: "pending" | "confirmed" | "cancelled" | "completed";
+  rating: number | null;
   doctor_name?: string;
   patient_name?: string;
   video_room_url?: string | null;
@@ -101,11 +102,13 @@ export default function PatientAppointments() {
   const [appointments, setAppointments] = useState<AppointmentItem[] | null>(null);
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [rescheduleId, setRescheduleId] = useState<string | null>(null);
+  const [rateId, setRateId] = useState<string | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [rescheduleTime, setRescheduleTime] = useState("");
   const [rescheduleAvailability, setRescheduleAvailability] = useState<DoctorAvailability | null>(null);
   const [rescheduleAvailabilityLoading, setRescheduleAvailabilityLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [ratingValue, setRatingValue] = useState(0);
 
   useEffect(() => {
     let mounted = true;
@@ -148,6 +151,11 @@ export default function PatientAppointments() {
     [all, rescheduleId],
   );
 
+  const rateTarget = useMemo(
+    () => all.find((appointment) => appointment.id === rateId) ?? null,
+    [all, rateId],
+  );
+
   const rescheduleSlotsForDate = useMemo(
     () =>
       rescheduleAvailability?.slots.filter(
@@ -161,6 +169,15 @@ export default function PatientAppointments() {
     setRescheduleDate(toInputDate(rescheduleTarget.scheduled_at));
     setRescheduleTime(toInputTime(rescheduleTarget.scheduled_at));
   }, [rescheduleTarget]);
+
+  useEffect(() => {
+    if (!rateTarget) {
+      setRatingValue(0);
+      return;
+    }
+
+    setRatingValue(rateTarget.rating ?? 0);
+  }, [rateTarget]);
 
   useEffect(() => {
     let mounted = true;
@@ -267,6 +284,24 @@ export default function PatientAppointments() {
       await refreshAppointments();
     } catch (error) {
       alert(error instanceof Error ? error.message : "Failed to reschedule appointment");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleRate() {
+    if (!rateTarget || ratingValue < 1 || ratingValue > 5) return;
+
+    setIsSubmitting(true);
+    try {
+      await apiRequest(`/api/v1/appointments/${rateTarget.id}/rate`, {
+        method: "PATCH",
+        body: JSON.stringify({ rating: ratingValue }),
+      });
+      setRateId(null);
+      await refreshAppointments();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Failed to save rating");
     } finally {
       setIsSubmitting(false);
     }
@@ -379,9 +414,18 @@ export default function PatientAppointments() {
                     </>
                   ) : null}
                   {tab === "past" && appointment.status === "completed" ? (
-                    <Link href={`/patient/appointments/${appointment.id}`}>
-                      <Button size="sm" variant="outline">Notes</Button>
-                    </Link>
+                    <>
+                      <Link href={`/patient/appointments/${appointment.id}`}>
+                        <Button size="sm" variant="outline">Notes</Button>
+                      </Link>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setRateId(appointment.id)}
+                      >
+                        {appointment.rating ? "Update Rating" : "Rate"}
+                      </Button>
+                    </>
                   ) : null}
                 </div>
               </li>
@@ -499,6 +543,55 @@ export default function PatientAppointments() {
               onClick={handleReschedule}
             >
               {isSubmitting ? "Saving..." : "Confirm Reschedule"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!rateId} onOpenChange={(value) => !value && setRateId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-serif text-2xl">Rate appointment</DialogTitle>
+            <DialogDescription>
+              Select how many stars you want to give Dr. {rateTarget?.doctor_name ?? "the doctor"}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center justify-center gap-2">
+              {Array.from({ length: 5 }, (_, index) => index + 1).map((value) => {
+                const active = value <= ratingValue;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setRatingValue(value)}
+                    className={cn(
+                      "rounded-full p-2 transition-transform hover:scale-105",
+                      active ? "text-amber-500" : "text-border",
+                    )}
+                    aria-label={`${value} star${value === 1 ? "" : "s"}`}
+                  >
+                    <Star className={cn("h-8 w-8", active && "fill-current")} />
+                  </button>
+                );
+              })}
+            </div>
+            <div className="text-center text-sm text-text-secondary">
+              {ratingValue > 0
+                ? `${ratingValue} star${ratingValue === 1 ? "" : "s"}`
+                : "Choose 1 to 5 stars"}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRateId(null)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-primary hover:bg-primary-mid"
+              disabled={isSubmitting || ratingValue < 1}
+              onClick={handleRate}
+            >
+              {isSubmitting ? "Saving..." : "Confirm Rating"}
             </Button>
           </DialogFooter>
         </DialogContent>

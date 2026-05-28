@@ -26,7 +26,9 @@ CREATE TABLE IF NOT EXISTS doctor_profiles (
 	license_number TEXT NOT NULL UNIQUE,
 	bio TEXT,
 	years_exp INT,
-	consultation_fee NUMERIC
+	consultation_fee NUMERIC,
+	rating FLOAT,
+	rating_count INT NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS doctor_schedules (
@@ -45,6 +47,8 @@ CREATE TABLE IF NOT EXISTS appointments (
 	doctor_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	scheduled_at TIMESTAMPTZ NOT NULL,
 	status TEXT NOT NULL CHECK (status IN ('pending', 'confirmed', 'cancelled', 'completed')),
+	rating SMALLINT CHECK (rating BETWEEN 1 AND 5),
+	rated_at TIMESTAMPTZ,
 	video_room_url TEXT,
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -89,6 +93,14 @@ ALTER TABLE appointments
   ADD COLUMN IF NOT EXISTS cancelled_by UUID REFERENCES users(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;
+
+ALTER TABLE doctor_profiles
+	ADD COLUMN IF NOT EXISTS rating FLOAT,
+	ADD COLUMN IF NOT EXISTS rating_count INT NOT NULL DEFAULT 0;
+
+ALTER TABLE appointments
+	ADD COLUMN IF NOT EXISTS rating SMALLINT CHECK (rating BETWEEN 1 AND 5),
+	ADD COLUMN IF NOT EXISTS rated_at TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS idx_appointments_doctor_status_time
   ON appointments (doctor_id, status, scheduled_at);

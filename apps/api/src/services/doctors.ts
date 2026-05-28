@@ -8,6 +8,8 @@ export type DoctorSummary = {
   bio: string | null;
   years_exp: number | null;
   consultation_fee: string | null;
+  rating: number | null;
+  rating_count: number | null;
   schedule_days: number[];
 };
 
@@ -123,6 +125,8 @@ export async function listDoctors(filters: ListDoctorFilters) {
 			dp.bio,
 			dp.years_exp,
     dp.consultation_fee::text,
+    dp.rating,
+    dp.rating_count,
     COALESCE(
       ARRAY(
         SELECT DISTINCT ds.day_of_week
@@ -170,7 +174,9 @@ export async function getDoctorById(doctorId: string) {
 			dp.license_number,
 			dp.bio,
 			dp.years_exp,
-			dp.consultation_fee::text
+      dp.consultation_fee::text,
+      dp.rating,
+      dp.rating_count
 		 FROM users u
 		 JOIN doctor_profiles dp ON dp.user_id = u.id
 		 WHERE u.id = $1

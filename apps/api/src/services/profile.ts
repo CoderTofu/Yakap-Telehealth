@@ -61,7 +61,7 @@ export async function getOwnProfile(userId: string, role: Role) {
   }
 
   const profileResult = await pool.query(
-    `SELECT specialization, license_number, bio, years_exp, consultation_fee::text
+    `SELECT specialization, license_number, bio, years_exp, consultation_fee::text, rating, rating_count
      FROM doctor_profiles
      WHERE user_id = $1
      LIMIT 1`,

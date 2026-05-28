@@ -10,6 +10,7 @@ import {
   getAppointmentMeetingLinkHandler,
   getAppointmentNotesHandler,
   listMyAppointmentsHandler,
+  rateAppointmentHandler,
   rescheduleAppointmentHandler,
   updateAppointmentNoteHandler,
 } from "../controllers/appointments";
@@ -24,6 +25,7 @@ router.patch("/:id/decision", auth, decideAppointmentHandler);
 router.patch("/:id/reschedule", auth, rescheduleAppointmentHandler);
 router.patch("/:id/cancel", auth, cancelAppointmentHandler);
 router.patch("/:id/complete", auth, completeAppointmentHandler);
+router.patch("/:id/rate", auth, rateAppointmentHandler);
 router.get("/:id/meeting", auth, getAppointmentMeetingLinkHandler);
 
 router.post("/:id/notes", auth, createAppointmentNoteHandler);

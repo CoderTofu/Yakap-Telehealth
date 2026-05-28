@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Award, BadgeCheck, ChevronLeft } from "lucide-react";
+import { Award, BadgeCheck, ChevronLeft, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,6 +25,8 @@ type Doctor = {
   experience: number;
   license: string;
   fee: number;
+  rating: number | null;
+  rating_count: number | null;
   availableDays: string[];
   avatarColor: string;
 };
@@ -71,6 +73,14 @@ function formatSlotTime(iso: string) {
     hour12: true,
     timeZone: "Asia/Manila"
   })
+}
+
+function formatRating(value: number | null) {
+  if (typeof value !== "number" || Number.isNaN(value) || value <= 0) {
+    return "No ratings yet";
+  }
+
+  return `${value.toFixed(1)} / 5`;
 }
 
 function buildAvailabilityDays(fromIso: string, toIso: string) {
@@ -163,6 +173,8 @@ export default function DoctorDetail() {
             experience: Number(doc_data.years_exp ?? doc_data.experience ?? 0),
             license: String(doc_data.license_number ?? doc_data.license ?? ""),
             fee: Number(doc_data.consultation_fee ?? doc_data.fee ?? 0),
+            rating: typeof doc_data.rating === "number" ? doc_data.rating : null,
+            rating_count: typeof doc_data.rating_count === "number" ? doc_data.rating_count : null,
             availableDays: Array.isArray(doc_data.availableDays)
               ? doc_data.availableDays
               : [],
@@ -278,9 +290,15 @@ export default function DoctorDetail() {
             size={80}
           />
           <div className="min-w-0 flex-1">
-            <h2 className="font-serif text-2xl text-text-primary">
-              {doctor.name}
-            </h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="font-serif text-2xl text-text-primary">
+                {doctor.name}
+              </h2>
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                <Star className="h-3.5 w-3.5 fill-current" />
+                {formatRating(doctor.rating)}
+              </span>
+            </div>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <span className="inline-flex rounded-full bg-primary-light px-2.5 py-0.5 text-xs font-medium text-primary">
                 {doctor.specialty}

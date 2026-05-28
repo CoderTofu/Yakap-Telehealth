@@ -276,6 +276,8 @@ export async function listOwnAppointments(user: AuthUser) {
       a.rejection_reason,
       a.cancelled_at::text,
       a.completed_at::text,
+      a.rating,
+      a.rated_at::text,
       a.created_at::text,
       doctor.name AS doctor_name,
       patient.name AS patient_name
@@ -288,6 +290,121 @@ export async function listOwnAppointments(user: AuthUser) {
   );
 
   return rows;
+}
+
+export async function rateAppointment(
+  patientUser: AuthUser,
+  appointmentId: string,
+  rating: number,
+) {
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    throw createHttpError(400, "rating must be an integer between 1 and 5");
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const appointmentResult = await client.query<{
+      id: string;
+      patient_id: string;
+      doctor_id: string;
+      status: string;
+      rating: number | null;
+      doctor_name: string;
+    }>(
+      `SELECT
+        a.id,
+        a.patient_id,
+        a.doctor_id,
+        a.status,
+        a.rating,
+        doctor.name AS doctor_name
+       FROM appointments a
+       JOIN users doctor ON doctor.id = a.doctor_id
+       WHERE a.id = $1 AND a.patient_id = $2
+       FOR UPDATE`,
+      [appointmentId, patientUser.id],
+    );
+
+    const appointment = appointmentResult.rows[0];
+
+    if (!appointment) {
+      throw createHttpError(404, "Appointment not found");
+    }
+
+    if (appointment.status !== "completed") {
+      throw createHttpError(409, "Only completed appointments can be rated");
+    }
+
+    const doctorProfileResult = await client.query<{
+      rating: number | null;
+      rating_count: number;
+    }>(
+      `SELECT rating, rating_count
+       FROM doctor_profiles
+       WHERE user_id = $1
+       FOR UPDATE`,
+      [appointment.doctor_id],
+    );
+
+    const doctorProfile = doctorProfileResult.rows[0];
+
+    if (!doctorProfile) {
+      throw createHttpError(404, "Doctor profile not found");
+    }
+
+    const currentRating = appointment.rating;
+    const currentAverage = doctorProfile.rating;
+    const currentCount = doctorProfile.rating_count ?? 0;
+
+    let nextAverage = currentAverage;
+    let nextCount = currentCount;
+
+    if (currentRating === null) {
+      nextCount = currentCount + 1;
+      nextAverage =
+        currentAverage === null
+          ? rating
+          : (currentAverage * currentCount + rating) / nextCount;
+    } else {
+      nextAverage =
+        currentCount === 0 || currentAverage === null
+          ? rating
+          : (currentAverage * currentCount - currentRating + rating) /
+            currentCount;
+    }
+
+    const updatedAppointment = await client.query(
+      `UPDATE appointments
+       SET rating = $2, rated_at = NOW()
+       WHERE id = $1
+       RETURNING id, patient_id, doctor_id, status, rating, rated_at::text`,
+      [appointmentId, rating],
+    );
+
+    await client.query(
+      `UPDATE doctor_profiles
+       SET rating = $2, rating_count = $3
+       WHERE user_id = $1`,
+      [appointment.doctor_id, nextAverage, nextCount],
+    );
+
+    await client.query("COMMIT");
+
+    return {
+      ...updatedAppointment.rows[0],
+      doctor_name: appointment.doctor_name,
+      doctor_rating: nextAverage,
+      doctor_rating_count: nextCount,
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function decideAppointment(

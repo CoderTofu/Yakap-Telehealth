@@ -10,6 +10,7 @@ import {
   getAppointmentNotes,
   listOwnAppointments,
   getAppointmentMeetingLink,
+  rateAppointment,
   rescheduleAppointment,
   updateConsultationNote,
 } from "../services/appointments";
@@ -203,6 +204,32 @@ export async function completeAppointmentHandler(
     const data = await completeAppointment(
       { id: req.user!.id, role: req.user!.role, name: req.user!.name },
       req.params.id,
+    );
+
+    return res.json({ data });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function rateAppointmentHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  if (!ensureUser(req, res)) return;
+
+  if (req.user!.role !== "patient") {
+    return res
+      .status(403)
+      .json({ error: { message: "Only patients can rate appointments" } });
+  }
+
+  try {
+    const data = await rateAppointment(
+      { id: req.user!.id, role: req.user!.role, name: req.user!.name },
+      req.params.id,
+      Number(req.body?.rating),
     );
 
     return res.json({ data });

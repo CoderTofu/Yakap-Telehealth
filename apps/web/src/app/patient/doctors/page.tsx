@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Search, Sparkles } from "lucide-react";
+import { Search, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +14,14 @@ import { apiRequest } from "@/lib/api-client";
 type Specialization = {
   specialization?: string[];
 };
+
+function formatRating(value?: number | null) {
+  if (typeof value !== "number" || Number.isNaN(value) || value <= 0) {
+    return "No ratings yet";
+  }
+
+  return value.toFixed(1);
+}
 
 export default function FindDoctors() {
   const [query, setQuery] = useState("");
@@ -229,7 +237,15 @@ export default function FindDoctors() {
               <div className="flex items-start gap-3">
                 <YakapAvatar name={d.name} color={d.avatarColor} size={52} />
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-medium text-text-primary">{d.name}</h3>
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="min-w-0 flex-1 font-medium text-text-primary">
+                      {d.name}
+                    </h3>
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                      <Star className="h-3.5 w-3.5 fill-current" />
+                      {formatRating(d.rating)}
+                    </span>
+                  </div>
                   <span className="mt-1 inline-flex rounded-full bg-primary-light px-2 py-0.5 text-xs font-medium text-primary">
                     {formatSpecialization(d.specialization)}
                   </span>

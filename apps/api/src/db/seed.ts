@@ -260,7 +260,9 @@ const schemaStatements = [
     license_number TEXT NOT NULL UNIQUE,
     bio TEXT,
     years_exp INT,
-    consultation_fee NUMERIC
+    consultation_fee NUMERIC,
+    rating FLOAT,
+    rating_count INT NOT NULL DEFAULT 0
   );`,
   `CREATE TABLE IF NOT EXISTS doctor_schedules (
     doctor_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -277,6 +279,8 @@ const schemaStatements = [
     doctor_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     scheduled_at TIMESTAMPTZ NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('pending', 'confirmed', 'cancelled', 'completed')),
+    rating SMALLINT CHECK (rating BETWEEN 1 AND 5),
+    rated_at TIMESTAMPTZ,
     video_room_url TEXT,
     duration_minutes INT NOT NULL DEFAULT 30,
     approved_at TIMESTAMPTZ,
@@ -314,6 +318,12 @@ const schemaStatements = [
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );`,
+  `ALTER TABLE doctor_profiles
+    ADD COLUMN IF NOT EXISTS rating FLOAT,
+    ADD COLUMN IF NOT EXISTS rating_count INT NOT NULL DEFAULT 0;`,
+  `ALTER TABLE appointments
+    ADD COLUMN IF NOT EXISTS rating SMALLINT CHECK (rating BETWEEN 1 AND 5),
+    ADD COLUMN IF NOT EXISTS rated_at TIMESTAMPTZ;`,
 ];
 
 function sqlLiteral(
@@ -410,7 +420,9 @@ function buildSeedSql() {
       license_number,
       bio,
       years_exp,
-      consultation_fee
+      consultation_fee,
+      rating,
+      rating_count
     )
     VALUES
       (
@@ -419,7 +431,9 @@ function buildSeedSql() {
         ${sqlLiteral("PH-CRD-10293")},
         ${sqlLiteral("Focuses on preventive heart care and chronic disease management.")},
         ${sqlLiteral(12)},
-        ${sqlLiteral(900)}
+        ${sqlLiteral(900)},
+        ${sqlLiteral(4.8)},
+        ${sqlLiteral(18)}
       ),
       (
         ${sqlLiteral(doctorUsers[1].id)},
@@ -427,7 +441,9 @@ function buildSeedSql() {
         ${sqlLiteral("PH-DERM-88921")},
         ${sqlLiteral("Treats acne, dermatitis, and long-term skin conditions.")},
         ${sqlLiteral(8)},
-        ${sqlLiteral(750)}
+        ${sqlLiteral(750)},
+        ${sqlLiteral(4.6)},
+        ${sqlLiteral(12)}
       ),
       (
         ${sqlLiteral(doctorUsers[2].id)},
@@ -435,7 +451,9 @@ function buildSeedSql() {
         ${sqlLiteral("PH-PED-55120")},
         ${sqlLiteral("Provides routine and preventive care for children and teens.")},
         ${sqlLiteral(11)},
-        ${sqlLiteral(850)}
+        ${sqlLiteral(850)},
+        ${sqlLiteral(4.9)},
+        ${sqlLiteral(20)}
       ),
       (
         ${sqlLiteral(doctorUsers[3].id)},
@@ -443,7 +461,9 @@ function buildSeedSql() {
         ${sqlLiteral("PH-NEU-77440")},
         ${sqlLiteral("Evaluates headaches, neuropathy, and other neurological concerns.")},
         ${sqlLiteral(14)},
-        ${sqlLiteral(1400)}
+        ${sqlLiteral(1400)},
+        ${sqlLiteral(4.7)},
+        ${sqlLiteral(15)}
       );
   `);
 

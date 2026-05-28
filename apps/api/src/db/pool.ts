@@ -5,14 +5,9 @@ import dotenv from "dotenv";
 
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-
-// Ensure database session timezone is Manila so timestamptz outputs/local functions
-// use Asia/Manila by default for each new connection.
-pool.on("connect", (client) => {
-  client
-    .query("SET TIME ZONE 'Asia/Manila'")
-    .catch((err) => console.error("Failed to set DB time zone:", err));
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  options: "-c timezone=Asia/Manila",
 });
 
 pool.on("error", (error) => {

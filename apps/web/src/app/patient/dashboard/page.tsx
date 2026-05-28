@@ -127,7 +127,26 @@ export default function PatientDashboard() {
     };
   }, []);
 
+  const resolvedAppointments = appointments ?? [];
+  const resolvedRecords = records ?? [];
   const loading = user === null || appointments === null || records === null;
+
+  const completedCount = resolvedAppointments.filter(
+    (appointment) => appointment.status === "completed",
+  ).length;
+
+  const activePrescriptions = resolvedRecords.filter(
+    (record) => !!record.diagnosis,
+  ).length;
+
+  const upcoming = resolvedAppointments
+    .filter(
+      (appointment) =>
+        appointment.status === "confirmed" || appointment.status === "pending",
+    )
+    .slice(0, 3);
+
+  const recentRecords = resolvedRecords.slice(0, 3);
 
   if (loading) {
     return (
@@ -143,25 +162,8 @@ export default function PatientDashboard() {
     return null;
   }
 
-  const upcoming = appointments.filter(
-    (appointment) =>
-      (appointment.status === "confirmed" || appointment.status === "pending"),
-  ).slice(0, 3);
-
-  const recentRecords = records.slice(0, 3);
-
-  const completedCount = useMemo(
-    () => appointments.filter((appointment) => appointment.status === "completed").length,
-    [appointments],
-  );
-
-  const activePrescriptions = useMemo(
-    () => records.filter((record) => !!record.diagnosis).length,
-    [records],
-  );
-
   const stats = [
-    { label: "Total Appointments", value: appointments.length, icon: CalendarDays },
+    { label: "Total Appointments", value: resolvedAppointments.length, icon: CalendarDays },
     { label: "Upcoming", value: upcoming.length, icon: ClipboardList },
     { label: "Completed", value: completedCount, icon: CheckCircle2 },
     { label: "Active Prescriptions", value: activePrescriptions, icon: Pill },

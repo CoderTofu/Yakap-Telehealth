@@ -14,9 +14,20 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { YakapAvatar } from "@/components/shared/avatar";
-import type { Doctor } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { useParams } from "next/navigation";
+
+type Doctor = {
+  id: string;
+  name: string;
+  specialty: string;
+  bio: string;
+  experience: number;
+  license: string;
+  fee: number;
+  availableDays: string[];
+  avatarColor: string;
+};
 
 type AvailabilitySlot = {
   starts_at: string;

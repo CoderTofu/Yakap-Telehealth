@@ -130,7 +130,6 @@ Files:
 - [apps/web/src/components/shared/empty-state.tsx](../apps/web/src/components/shared/empty-state.tsx)
 - [apps/web/src/components/ui/dialog.tsx](../apps/web/src/components/ui/dialog.tsx)
 - [apps/web/src/lib/dashboard-data.ts](../apps/web/src/lib/dashboard-data.ts)
-- [apps/web/src/lib/mock-data.ts](../apps/web/src/lib/mock-data.ts)
 - [apps/web/src/lib/appConfig.tsx](../apps/web/src/lib/appConfig.tsx)
 
 The shared UI work focused on making the dashboards usable with a small set of reusable pieces:

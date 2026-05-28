@@ -52,6 +52,10 @@ const TYPE: Record<UiNotificationType, { icon: LucideIcon; bg: string; color: st
   cancelled: { icon: X, bg: "bg-danger-light", color: "text-[#991B1B]" },
 };
 
+function notifyNotificationsChanged() {
+  window.dispatchEvent(new Event("notifications:changed"));
+}
+
 function formatRelativeTime(iso: string) {
   const date = new Date(iso);
 
@@ -140,6 +144,7 @@ export default function Notifications() {
     setItems((arr) =>
       arr ? arr.map((item) => (item.id === id ? { ...item, unread: false } : item)) : arr,
     );
+    notifyNotificationsChanged();
 
     try {
       await apiRequest(`/api/v1/notifications/${id}/read`, { method: "PATCH" });
@@ -156,6 +161,7 @@ export default function Notifications() {
 
     setBusy(true);
     setItems((arr) => (arr ? arr.map((item) => ({ ...item, unread: false })) : arr));
+    notifyNotificationsChanged();
 
     try {
       await Promise.allSettled(

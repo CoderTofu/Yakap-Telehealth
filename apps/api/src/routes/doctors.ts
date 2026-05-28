@@ -16,36 +16,36 @@ import {
   validateBlockPayload,
   validateWeeklySchedules,
 } from "../middleware/doctors";
-import { asyncHandler } from "../utils/asyncHandler";
+
 
 const router = Router();
 
-router.get("/", asyncHandler(listDoctorsHandler));
+router.get("/", listDoctorsHandler);
 
-router.get("/me/schedule", auth, ensureDoctorRole, asyncHandler(getMyScheduleHandler));
+router.get("/me/schedule", auth, ensureDoctorRole, getMyScheduleHandler);
 router.put(
   "/me/schedule",
   auth,
   ensureDoctorRole,
   validateWeeklySchedules,
-  asyncHandler(putMyScheduleHandler),
+  putMyScheduleHandler,
 );
 router.post(
   "/me/blocks",
   auth,
   ensureDoctorRole,
   validateBlockPayload,
-  asyncHandler(postMyBlockHandler),
+  postMyBlockHandler,
 );
-router.get("/me/patients", auth, ensureDoctorRole, asyncHandler(getMyPatientsHandler));
+router.get("/me/patients", auth, ensureDoctorRole, getMyPatientsHandler);
 router.get(
   "/me/patients/:patientId",
   auth,
   ensureDoctorRole,
-  asyncHandler(getMyPatientProfileHandler),
+  getMyPatientProfileHandler,
 );
 
-router.get("/:id/availability", asyncHandler(getDoctorAvailabilityHandler));
-router.get("/:id", asyncHandler(getDoctorByIdHandler));
+router.get("/:id/availability", getDoctorAvailabilityHandler);
+router.get("/:id", getDoctorByIdHandler);
 
 export default router;

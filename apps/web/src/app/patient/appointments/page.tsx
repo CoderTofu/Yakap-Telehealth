@@ -280,7 +280,7 @@ export default function PatientAppointments() {
             key={value}
             onClick={() => setTab(value)}
             className={cn(
-              "rounded-md px-4 py-1.5 text-sm font-medium capitalize transition-colors",
+              "rounded-md px-4 py-1.5 text-sm font-medium capitalize transition-colors cursor-pointer",
               tab === value
                 ? "bg-primary text-white"
                 : "text-text-secondary hover:text-text-primary",

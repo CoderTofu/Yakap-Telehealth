@@ -24,12 +24,17 @@ export async function listDoctorsHandler(
       typeof dayOfWeekRaw === "string" && dayOfWeekRaw !== ""
         ? Number(dayOfWeekRaw)
         : undefined;
+    const specializationRaw = req.query.specialization;
+    const specializations = Array.isArray(specializationRaw)
+      ? specializationRaw.filter(
+          (value): value is string => typeof value === "string" && value !== "",
+        )
+      : typeof specializationRaw === "string" && specializationRaw !== ""
+        ? [specializationRaw]
+        : undefined;
 
     const data = await listDoctors({
-      specialization:
-        typeof req.query.specialization === "string"
-          ? req.query.specialization
-          : undefined,
+      specialization: specializations,
       search:
         typeof req.query.search === "string" ? req.query.search : undefined,
       day_of_week:

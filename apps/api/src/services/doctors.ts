@@ -12,7 +12,7 @@ export type DoctorSummary = {
 };
 
 export type ListDoctorFilters = {
-  specialization?: string;
+  specialization?: string | string[];
   search?: string;
   day_of_week?: number;
   page: number;
@@ -66,11 +66,17 @@ function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) {
 
 export async function listDoctors(filters: ListDoctorFilters) {
   const conditions: string[] = ["u.role = 'doctor'"];
-  const values: Array<string | number> = [];
+  const values: Array<string | number | string[]> = [];
 
-  if (filters.specialization) {
-    values.push(filters.specialization);
-    conditions.push(`dp.specialization = $${values.length}`);
+  const specializations = Array.isArray(filters.specialization)
+    ? filters.specialization.filter(Boolean)
+    : filters.specialization
+      ? [filters.specialization]
+      : [];
+
+  if (specializations.length > 0) {
+    values.push(specializations);
+    conditions.push(`dp.specialization = ANY($${values.length}::text[])`);
   }
 
   if (filters.search) {
@@ -129,6 +135,12 @@ export async function listDoctors(filters: ListDoctorFilters) {
 		 FROM users u
 		 JOIN doctor_profiles dp ON dp.user_id = u.id
 		 ${whereClause}
+     AND EXISTS (
+        SELECT 1
+        FROM doctor_schedules ds
+        WHERE ds.doctor_id = u.id
+        AND ds.is_blocked = FALSE
+     )
 		 ORDER BY u.name ASC
 		 LIMIT $${values.length + 1}
 		 OFFSET $${values.length + 2}`,

@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Search, Sparkles } from "lucide-react";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 // import { Textarea } from "@/components/ui/textarea";
 import { YakapAvatar } from "@/components/shared/avatar";
-import { SPECIALTIES } from "@/lib/appConfig";
+import { SPECIALTIES, DAYS } from "@/lib/appConfig";
 import { cn } from "@/lib/utils";
+import { apiRequest } from "@/lib/api-client";
 
 export default function FindDoctors() {
   const [query, setQuery] = useState("");
@@ -16,37 +17,33 @@ export default function FindDoctors() {
   // const [symptoms, setSymptoms] = useState("");
   const [highlight, setHighlight] = useState<string[]>([]);
   const [doctors, setDoctors] = useState<any[]>([]);
+  const [availability, setAvailability] = useState<number>()
+
+  async function loadDoctors(search: string, specializations: string[], day: number = -1) {
+    try {
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+      specializations.forEach((specialization) => {
+        params.append("specialization", specialization);
+      });
+      if (day != -1) params.append("day_of_week", day.toString())
+
+      params.set("page", "1");
+      params.set("limit", "12");
+
+      const json = await apiRequest<{ data: { items: any[] } }>(
+        `/api/v1/doctors?${params.toString()}`,
+      );
+
+      setDoctors(json.data?.items ?? []);
+    } catch (err) {
+      console.error("failed to fetch doctors", err);
+    }
+  }
 
   useEffect(() => {
-    let mounted = true;
-    async function fetchDoctors() {
-      try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL;
-        const url = `${apiBase}/api/v1/doctors`;
-        const res = await fetch(url);
-        const json = await res.json();
-        // Support { data: { items } } or { items }
-        const items = json?.data?.items ?? json?.items ?? [];
-        if (mounted) setDoctors(items);
-      } catch (err) {
-        // swallow and keep empty list (UI will show 0 results)
-        console.error("failed to fetch doctors", err);
-      }
-    }
-    fetchDoctors();
-    return () => {
-      mounted = false;
-    };
+    void loadDoctors("", []);
   }, []);
-
-  const results = useMemo(() => {
-    return doctors.filter((d) => {
-      if (query && !d.name.toLowerCase().includes(query.toLowerCase()))
-        return false;
-      if (selected.length && !selected.includes(d.specialization)) return false;
-      return true;
-    });
-  }, [doctors, query, selected]);
 
   function toggle(name: string) {
     setSelected((s) =>
@@ -64,6 +61,28 @@ export default function FindDoctors() {
   function numToWeek(num: number) {
     const week = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     return week[num];
+  }
+
+  function formatSpecialization(value?: string) {
+    if (!value) return "Unknown";
+
+    return (
+      SPECIALTIES.find((specialty) => specialty.value === value)?.label ??
+      value
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((part) => part[0]?.toUpperCase() + part.slice(1).toLowerCase())
+        .join(" ")
+    );
+  }
+  
+  async function filter() {
+    await loadDoctors(query, selected, availability);
+    console.log("hello")
+  }
+
+  function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    setAvailability(Number(e.target.value));
   }
 
   return (
@@ -135,24 +154,29 @@ export default function FindDoctors() {
           <h4 className="mt-5 mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
             Availability
           </h4>
-          <select className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
-            <option>Any day</option>
-            <option>Today</option>
-            <option>This week</option>
+          <select className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm cursor-pointer" onChange={handleChange} value={availability}>
+            {DAYS.map((d) => 
+              <option key={d.value} value={d.value}>{d.label}</option>
+            )}
           </select>
 
           <div className="mt-5 flex gap-2">
             {/* TODO: Fix Logic */}
-            {/* <Button className="flex-1 bg-primary hover:bg-primary-mid">
-              Apply
-            </Button> */}
             <Button
-              className="cursor-pointer"
-              variant="ghost"
+              className="flex-1 bg-primary hover:bg-primary-mid"
+              onClick={() => void filter()}
+            >
+              Apply
+            </Button>
+            <Button
+              className="flex-1"
+              variant="outline"
               onClick={() => {
                 setSelected([]);
                 setQuery("");
                 setHighlight([]);
+                setAvailability(DAYS[0].value);
+                void loadDoctors("", []);
               }}
             >
               Clear
@@ -167,13 +191,13 @@ export default function FindDoctors() {
           <p className="text-sm text-text-secondary">
             Showing{" "}
             <span className="font-medium text-text-primary">
-              {results.length}
+              {doctors.length}
             </span>{" "}
             doctors
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          {results.map((d) => (
+          {doctors.map((d) => (
             <article
               key={d.id}
               className="flex flex-col rounded-xl border border-border bg-surface p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition-all hover:border-primary-mid hover:shadow-md"
@@ -182,12 +206,12 @@ export default function FindDoctors() {
                 <YakapAvatar name={d.name} color={d.avatarColor} size={52} />
                 <div className="min-w-0 flex-1">
                   <h3 className="font-medium text-text-primary">{d.name}</h3>
-                  <span className="mt-1 inline-flex rounded-full bg-primary-light px-2 py-0.5 text-xs font-medium text-primary capitalize">
-                    {d.specialization}
+                  <span className="mt-1 inline-flex rounded-full bg-primary-light px-2 py-0.5 text-xs font-medium text-primary">
+                    {formatSpecialization(d.specialization)}
                   </span>
                 </div>
               </div>
-              <p className="mt-3 line-clamp-2 text-sm text-text-secondary">
+              <p className="mt-3 h-10 overflow-hidden text-sm leading-5 text-text-secondary line-clamp-2">
                 {d.bio}
               </p>
               <div className="mt-3 text-xs text-text-muted">
@@ -203,7 +227,7 @@ export default function FindDoctors() {
                   </span>
                 ))}
               </div>
-              <div className="mt-5">
+              <div className="mt-auto pt-4">
                 <Button
                   asChild
                   className="w-full bg-primary hover:bg-primary-mid"

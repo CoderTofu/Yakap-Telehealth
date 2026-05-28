@@ -20,7 +20,6 @@ import { apiRequest } from "@/lib/api-client";
 export default function DoctorDashboard() {
   const [user, setUser] = useState<any | null>(null);
   const [appointments, setAppointments] = useState<any[] | null>(null);
-  const router = useRouter();
 
   useEffect(() => {
     try {

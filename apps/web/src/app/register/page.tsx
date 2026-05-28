@@ -470,7 +470,7 @@ function RoleCard({
       type="button"
       onClick={onSelect}
       className={cn(
-        "relative rounded-xl border bg-surface p-5 text-left transition-all",
+        "relative rounded-xl border bg-surface p-5 text-left transition-all cursor-pointer",
         selected
           ? "border-primary bg-primary-light ring-2 ring-primary-mid/30"
           : "border-border hover:border-primary-mid",

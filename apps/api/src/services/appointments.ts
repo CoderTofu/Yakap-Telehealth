@@ -24,7 +24,7 @@ function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) {
 
 const MANILA_OFFSET_MS = 8 * 60 * 60 * 1000;
 
-function buildFallbackMeetingUrl(appointmentId: string) {
+function buildMeetingUrl(appointmentId: string) {
   return `https://meet.jit.si/yakap-${encodeURIComponent(appointmentId)}`;
 }
 
@@ -326,7 +326,7 @@ export async function decideAppointment(
   const scheduledLabel = formatNotificationSchedule(appointment.scheduled_at);
 
   if (action === "approve") {
-    const videoRoomUrl = buildFallbackMeetingUrl(appointmentId);
+    const videoRoomUrl = buildMeetingUrl(appointmentId);
 
     const { rows } = await pool.query(
       `UPDATE appointments
@@ -432,7 +432,7 @@ export async function getAppointmentMeetingLink(
     return { video_room_url: appointment.video_room_url };
   }
 
-  const meetLink = buildFallbackMeetingUrl(appointment.id);
+  const meetLink = buildMeetingUrl(appointment.id);
 
   const { rows } = await pool.query(
     `UPDATE appointments

@@ -63,6 +63,56 @@ function formatNotificationSchedule(iso: string) {
   return `${time} ${calendarDate}`;
 }
 
+async function autoCancelExpiredPendingAppointments() {
+  const { rows } = await pool.query<{
+    id: string;
+    patient_id: string;
+    doctor_id: string;
+    scheduled_at: string;
+    doctor_name: string;
+    patient_name: string;
+  }>(
+    `UPDATE appointments a
+     SET
+       status = 'cancelled',
+       cancelled_by = NULL,
+       cancelled_at = COALESCE(cancelled_at, NOW()),
+       rejection_reason = COALESCE(rejection_reason, 'Automatically cancelled because the scheduled time has passed')
+     FROM users doctor,
+          users patient
+     WHERE a.status = 'pending'
+       AND a.scheduled_at <= NOW()
+       AND doctor.id = a.doctor_id
+       AND patient.id = a.patient_id
+     RETURNING
+       a.id,
+       a.patient_id,
+       a.doctor_id,
+       a.scheduled_at::text,
+       doctor.name AS doctor_name,
+       patient.name AS patient_name`,
+  );
+
+  if (!rows.length) {
+    return;
+  }
+
+  await Promise.all(
+    rows.flatMap((appointment) => {
+      const scheduledLabel = formatNotificationSchedule(appointment.scheduled_at);
+      const patientMessage =
+        `Your appointment scheduled for ${scheduledLabel} was automatically cancelled because the scheduled time passed.`;
+      const doctorMessage =
+        `The appointment with ${appointment.patient_name} scheduled for ${scheduledLabel} was automatically cancelled because the scheduled time passed.`;
+
+      return [
+        createNotification(appointment.patient_id, "appointment_cancelled", patientMessage),
+        createNotification(appointment.doctor_id, "appointment_cancelled", doctorMessage),
+      ];
+    }),
+  );
+}
+
 // Function to check if a doctor is available for a given time slot, considering their schedule, blocks, and existing appointments
 async function assertDoctorAvailable(
   doctorId: string,
@@ -260,6 +310,8 @@ export async function createAppointment(
 }
 
 export async function listOwnAppointments(user: AuthUser) {
+  await autoCancelExpiredPendingAppointments();
+
   const field = user.role === "doctor" ? "doctor_id" : "patient_id";
 
   const { rows } = await pool.query(
@@ -413,6 +465,8 @@ export async function decideAppointment(
   action: "approve" | "reject",
   reason?: string,
 ) {
+  await autoCancelExpiredPendingAppointments();
+
   const appointmentResult = await pool.query<{
     id: string;
     patient_id: string;
@@ -594,7 +648,7 @@ export async function cancelAppointment(
      FROM appointments a
      JOIN users doctor ON doctor.id = a.doctor_id
      JOIN users patient ON patient.id = a.patient_id
-     WHERE id = $1
+     WHERE a.id = $1
        AND (a.patient_id = $2 OR a.doctor_id = $2)
      LIMIT 1`,
     [appointmentId, user.id],

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, Save, Edit2 } from "lucide-react";
+import { Loader2, Save, Edit2, Sparkles, FileText, Stethoscope } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -165,55 +165,74 @@ export default function AppointmentNotesPage() {
   }
 
   return (
-    <div className="space-y-4">
-      {isEditing ? (
-        <div className="rounded-xl border border-primary/20 bg-primary-light px-4 py-3 text-sm text-primary">
-          Editing mode is on. Use Save Changes to apply updates or Cancel to discard edits.
-        </div>
-      ) : null}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <YakapAvatar name={appointment?.patient_name ?? "Patient"} color="#0B4F71" size={48} />
-          <div>
-            <div className="text-lg font-medium text-text-primary">
-              {appointment?.patient_name ?? "Patient"}
+    <div className="space-y-6">
+      <section className="overflow-hidden rounded-3xl border border-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+        <div className="bg-linear-to-br from-primary-light via-surface to-surface px-6 py-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <YakapAvatar name={appointment?.patient_name ?? "Patient"} color="#0B4F71" size={56} />
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white/80 px-3 py-1 text-xs font-medium text-primary shadow-sm">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Consultation notes
+                </div>
+                <div className="mt-3 text-2xl font-serif text-text-primary md:text-3xl">
+                  {appointment?.patient_name ?? "Patient"}
+                </div>
+                {appointment?.scheduled_at ? (
+                  <div className="mt-1 text-sm text-text-secondary">{formatDateTime(appointment.scheduled_at)}</div>
+                ) : null}
+              </div>
             </div>
-            {appointment?.scheduled_at ? (
-              <div className="text-xs text-text-muted mt-1">{formatDateTime(appointment.scheduled_at)}</div>
-            ) : null}
+            <div className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-text-secondary">
+              <div className="font-medium text-text-primary">Appointment status</div>
+              <div className="mt-1 capitalize">{appointment?.status ?? "unknown"}</div>
+            </div>
           </div>
+
+          {isEditing ? (
+            <div className="mt-6 rounded-2xl border border-primary/20 bg-primary-light px-4 py-3 text-sm text-primary">
+              Editing mode is on. Use Save Changes to apply updates or Cancel to discard edits.
+            </div>
+          ) : null}
         </div>
+      </section>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <MiniCard icon={FileText} label="Latest note" value={latest ? "Available" : "None yet"} helper="Current consultation record" />
+        <MiniCard icon={Stethoscope} label="Status" value={appointment?.status ?? "unknown"} helper="Editing unlocked after completion" />
+        <MiniCard icon={Edit2} label="Mode" value={isEditing ? "Editing" : "Viewing"} helper="One save button per page" />
       </div>
 
-      <div className="rounded-xl border border-border bg-surface p-4">
+      <div className="rounded-3xl border border-border bg-surface p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
         {!canEdit ? (
-          <div className="text-sm text-text-muted">
+          <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-6 text-sm text-text-muted">
             Consultation notes can only be added after the appointment is completed. Current status: <span className="font-medium text-text-primary">{appointment?.status ?? "unknown"}</span>.
           </div>
         ) : !isEditing ? (
           <div className="space-y-4 text-sm">
             {latest ? (
               <>
-                <div>
+                <div className="rounded-2xl border border-border bg-muted/20 p-4">
                   <div className="text-xs uppercase tracking-wide text-text-muted">Subjective findings</div>
-                  <p className="mt-1 text-text-primary">{latest.subjective ?? "-"}</p>
+                  <p className="mt-2 leading-6 text-text-primary">{latest.subjective ?? "-"}</p>
                 </div>
-                <div>
+                <div className="rounded-2xl border border-border bg-muted/20 p-4">
                   <div className="text-xs uppercase tracking-wide text-text-muted">Diagnosis</div>
-                  <p className="mt-1 text-text-primary">{latest.diagnosis ?? "-"}</p>
+                  <p className="mt-2 leading-6 text-text-primary">{latest.diagnosis ?? "-"}</p>
                 </div>
-                <div>
+                <div className="rounded-2xl border border-border bg-muted/20 p-4">
                   <div className="text-xs uppercase tracking-wide text-text-muted">Prescription</div>
-                  <p className="mt-1 text-text-primary">{latest.prescription ?? "-"}</p>
+                  <p className="mt-2 leading-6 text-text-primary">{latest.prescription ?? "-"}</p>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" onClick={() => beginUpdate(latest)}>
+                  <Button size="sm" onClick={() => beginUpdate(latest)} className="bg-primary hover:bg-primary-mid">
                     <Edit2 className="h-4 w-4" /> Edit
                   </Button>
                 </div>
               </>
             ) : (
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col gap-4 rounded-2xl border border-dashed border-border bg-muted/20 p-5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <div className="text-sm font-medium text-text-primary">No consultation note yet</div>
                   <p className="mt-1 text-text-secondary">
@@ -228,19 +247,19 @@ export default function AppointmentNotesPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            <div>
+            <div className="rounded-2xl border border-border bg-muted/20 p-4">
               <div className="text-xs uppercase tracking-wide text-text-muted">Subjective findings</div>
-              <Textarea value={subjective} onChange={(e) => setSubjective(e.target.value)} disabled={!canEdit} />
+              <Textarea className="mt-2 min-h-32 bg-surface" value={subjective} onChange={(e) => setSubjective(e.target.value)} disabled={!canEdit} />
             </div>
-            <div>
+            <div className="rounded-2xl border border-border bg-muted/20 p-4">
               <div className="text-xs uppercase tracking-wide text-text-muted">Diagnosis</div>
-              <Textarea value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} disabled={!canEdit} />
+              <Textarea className="mt-2 min-h-32 bg-surface" value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} disabled={!canEdit} />
             </div>
-            <div>
+            <div className="rounded-2xl border border-border bg-muted/20 p-4">
               <div className="text-xs uppercase tracking-wide text-text-muted">Prescription</div>
-              <Textarea value={prescription} onChange={(e) => setPrescription(e.target.value)} disabled={!canEdit} />
+              <Textarea className="mt-2 min-h-32 bg-surface" value={prescription} onChange={(e) => setPrescription(e.target.value)} disabled={!canEdit} />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 rounded-2xl border border-border bg-surface px-4 py-3">
               <Button
                 size="sm"
                 className="bg-primary hover:bg-primary-mid"
@@ -256,6 +275,29 @@ export default function AppointmentNotesPage() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function MiniCard({
+  icon: Icon,
+  label,
+  value,
+  helper,
+}: {
+  icon: typeof Sparkles;
+  label: string;
+  value: string;
+  helper: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/60 bg-white/80 p-4 shadow-sm backdrop-blur">
+      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-text-muted">
+        <Icon className="h-3.5 w-3.5" />
+        {label}
+      </div>
+      <div className="mt-2 text-lg font-semibold text-text-primary">{value}</div>
+      <div className="mt-1 text-sm text-text-secondary">{helper}</div>
     </div>
   );
 }

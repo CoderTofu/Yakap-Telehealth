@@ -89,6 +89,12 @@ export default function DoctorAppointments() {
   );
   const list = tab === "upcoming" ? upcoming : past;
 
+  const counts = {
+    pending: all.filter((appointment) => appointment.status === "pending").length,
+    confirmed: all.filter((appointment) => appointment.status === "confirmed").length,
+    completed: all.filter((appointment) => appointment.status === "completed").length,
+  };
+
   function canCompleteAppointment(appointment: AppointmentItem) {
     const endsAt = new Date(
       new Date(appointment.scheduled_at).getTime() + appointment.duration_minutes * 60 * 1000,
@@ -139,31 +145,54 @@ export default function DoctorAppointments() {
 
   return (
     <div className="space-y-6">
-      <div className="inline-flex rounded-lg border border-border bg-surface p-1">
-        {(["upcoming", "past"] as const).map((value) => (
-          <button
-            key={value}
-            onClick={() => setTab(value)}
-            className={cn(
-              "rounded-md px-4 py-1.5 text-sm font-medium capitalize transition-colors cursor-pointer",
-              tab === value
-                ? "bg-primary text-white"
-                : "text-text-secondary hover:text-text-primary",
-            )}
-          >
-            {value}
-          </button>
-        ))}
-      </div>
+      <section className="mx-auto w-full max-w-5xl overflow-hidden rounded-3xl border border-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+        <div className="bg-linear-to-br from-primary-light via-surface to-surface px-5 py-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center rounded-full border border-primary/20 bg-white/80 px-3 py-1 text-xs font-medium text-primary shadow-sm">
+                Doctor schedule board
+              </div>
+              <h2 className="mt-4 font-serif text-3xl text-text-primary md:text-4xl">
+                Appointments
+              </h2>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-text-secondary">
+                Review requests, confirm visits, and keep the day moving without losing the bigger picture.
+              </p>
+            </div>
+            <div className="inline-flex rounded-full border border-border bg-surface p-1 shadow-sm">
+              {(["upcoming", "past"] as const).map((value) => (
+                <button
+                  key={value}
+                  onClick={() => setTab(value)}
+                  className={cn(
+                    "rounded-full px-4 py-2 text-sm font-medium capitalize transition-colors cursor-pointer",
+                    tab === value
+                      ? "bg-primary text-white shadow-sm"
+                      : "text-text-secondary hover:text-text-primary",
+                  )}
+                >
+                  {value}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <StatCard label="Pending" value={String(counts.pending)} helper="Waiting on your decision" />
+            <StatCard label="Confirmed" value={String(counts.confirmed)} helper="Ready for consultation" />
+            <StatCard label="Completed" value={String(counts.completed)} helper="Finished visits" />
+          </div>
+        </div>
+      </section>
 
       {appointments === null ? (
-        <div className="rounded-xl border border-border bg-surface">
-          <div className="flex items-center justify-center gap-2 px-6 py-16 text-sm text-text-secondary">
+        <div className="mx-auto w-full max-w-4xl rounded-3xl border border-border bg-surface">
+          <div className="flex items-center justify-center gap-2 px-6 py-12 text-sm text-text-secondary">
             <Loader2 className="h-4 w-4 animate-spin" /> Loading appointments...
           </div>
         </div>
       ) : list.length === 0 ? (
-        <div className="rounded-xl border border-border bg-surface">
+        <div className="mx-auto w-full max-w-4xl rounded-3xl border border-border bg-surface">
           <EmptyState
             icon={CalendarDays}
             title="No appointments"
@@ -175,26 +204,28 @@ export default function DoctorAppointments() {
           />
         </div>
       ) : (
-        <ul className="space-y-3">
+        <ul className="mx-auto w-full max-w-5xl space-y-3">
           {list.map((appointment) => {
             const patientName = appointment.patient_name ?? "Patient";
+            const isConfirmed = appointment.status === "confirmed";
+            const isPending = appointment.status === "pending";
 
             return (
               <li
                 key={appointment.id}
                 className={cn(
-                  "rounded-xl border border-border bg-surface p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)] border-l-4",
+                  "rounded-2xl border border-border bg-surface p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)] border-l-4",
                   COL[appointment.status],
                 )}
               >
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <YakapAvatar name={patientName} color="#0B4F71" size={48} />
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <YakapAvatar name={patientName} color="#0B4F71" size={40} />
                     <div>
-                      <div className="font-medium text-text-primary">
+                      <div className="text-sm font-semibold text-text-primary">
                         {patientName}
                       </div>
-                      <div className="mt-1 text-xs text-text-muted">
+                      <div className="mt-0.5 text-xs text-text-muted">
                         {formatDate(appointment.scheduled_at)} · {formatTime(appointment.scheduled_at)}
                       </div>
                     </div>
@@ -202,10 +233,17 @@ export default function DoctorAppointments() {
                   <StatusBadge status={appointment.status} />
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {appointment.status === "confirmed" ? (
+                <div className="mt-3 rounded-2xl border border-border bg-muted/20 px-3 py-2.5">
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <InfoPill label="Date" value={formatDate(appointment.scheduled_at)} />
+                    <InfoPill label="Time" value={formatTime(appointment.scheduled_at)} />
+                    <InfoPill label="Duration" value={`${appointment.duration_minutes} min`} />
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {isConfirmed ? (
                     <>
-                    
                     <Button
                       size="sm"
                       className="bg-primary hover:bg-primary-mid"
@@ -214,18 +252,28 @@ export default function DoctorAppointments() {
                       <Video className="h-4 w-4" /> Open Meet
                     </Button>
                     <Link href={`/doctor/appointments/${appointment.id}`}> 
-                      <Button size="sm" variant="outline">Notes</Button> 
+                      <Button
+                        size="sm"
+                        className="border-primary/20 bg-primary-light text-primary hover:bg-primary/20 hover:text-primary"
+                      >
+                        Notes
+                      </Button>
                     </Link>
                     </>
                   ) : null}
 
                   {appointment.status === "completed" ? (
                     <Link href={`/doctor/appointments/${appointment.id}`}>
-                      <Button size="sm" variant="outline">Notes</Button>
+                      <Button
+                        size="sm"
+                        className="border-primary/20 bg-primary-light text-primary hover:bg-primary/20 hover:text-primary"
+                      >
+                        Notes
+                      </Button>
                     </Link>
                   ) : null}
 
-                  {appointment.status === "pending" ? (
+                  {isPending ? (
                     <>
                       <Button
                         size="sm"
@@ -287,6 +335,25 @@ export default function DoctorAppointments() {
           })}
         </ul>
       )}
+    </div>
+  );
+}
+
+function StatCard({ label, value, helper }: { label: string; value: string; helper: string }) {
+  return (
+    <div className="rounded-2xl border border-white/60 bg-white/80 p-3.5 shadow-sm backdrop-blur">
+      <div className="text-xs font-medium uppercase tracking-wide text-text-muted">{label}</div>
+      <div className="mt-1.5 text-2xl font-serif text-text-primary">{value}</div>
+      <div className="mt-1 text-sm text-text-secondary">{helper}</div>
+    </div>
+  );
+}
+
+function InfoPill({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-surface px-3 py-2">
+      <div className="text-[11px] font-medium uppercase tracking-wide text-text-muted">{label}</div>
+      <div className="mt-0.5 text-sm font-medium text-text-primary">{value}</div>
     </div>
   );
 }

@@ -156,6 +156,12 @@ export default function PatientAppointments() {
     [all, rateId],
   );
 
+  const counts = {
+    upcoming: upcoming.length,
+    past: past.length,
+    total: all.length,
+  };
+
   const rescheduleSlotsForDate = useMemo(
     () =>
       rescheduleAvailability?.slots.filter(
@@ -309,31 +315,54 @@ export default function PatientAppointments() {
 
   return (
     <div className="space-y-6">
-      <div className="inline-flex rounded-lg border border-border bg-surface p-1">
-        {(["upcoming", "past"] as const).map((value) => (
-          <button
-            key={value}
-            onClick={() => setTab(value)}
-            className={cn(
-              "rounded-md px-4 py-1.5 text-sm font-medium capitalize transition-colors cursor-pointer",
-              tab === value
-                ? "bg-primary text-white"
-                : "text-text-secondary hover:text-text-primary",
-            )}
-          >
-            {value}
-          </button>
-        ))}
-      </div>
+      <section className="mx-auto w-full max-w-5xl overflow-hidden rounded-3xl border border-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+        <div className="bg-linear-to-br from-primary-light via-surface to-surface px-5 py-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center rounded-full border border-primary/20 bg-white/80 px-3 py-1 text-xs font-medium text-primary shadow-sm">
+                Appointments overview
+              </div>
+              <h2 className="mt-4 font-serif text-3xl text-text-primary md:text-4xl">
+                Your appointments
+              </h2>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-text-secondary">
+                Keep track of upcoming consultations, manage reschedules, and review completed visits in one place.
+              </p>
+            </div>
+            <div className="inline-flex rounded-full border border-border bg-surface p-1 shadow-sm">
+              {(["upcoming", "past"] as const).map((value) => (
+                <button
+                  key={value}
+                  onClick={() => setTab(value)}
+                  className={cn(
+                    "rounded-full px-4 py-2 text-sm font-medium capitalize transition-colors cursor-pointer",
+                    tab === value
+                      ? "bg-primary text-white shadow-sm"
+                      : "text-text-secondary hover:text-text-primary",
+                  )}
+                >
+                  {value}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <MetricCard label="Upcoming" value={String(counts.upcoming)} helper="Pending and confirmed" />
+            <MetricCard label="Past" value={String(counts.past)} helper="Completed or cancelled" />
+            <MetricCard label="Total" value={String(counts.total)} helper="All appointment history" />
+          </div>
+        </div>
+      </section>
 
       {appointments === null ? (
-        <div className="rounded-xl border border-border bg-surface">
-          <div className="flex items-center justify-center gap-2 px-6 py-16 text-sm text-text-secondary">
+        <div className="mx-auto w-full max-w-4xl rounded-3xl border border-border bg-surface">
+          <div className="flex items-center justify-center gap-2 px-6 py-12 text-sm text-text-secondary">
             <Loader2 className="h-4 w-4 animate-spin" /> Loading appointments...
           </div>
         </div>
       ) : list.length === 0 ? (
-        <div className="rounded-xl border border-border bg-surface">
+        <div className="mx-auto w-full max-w-4xl rounded-3xl border border-border bg-surface">
           <EmptyState
             icon={CalendarDays}
             title={
@@ -356,26 +385,27 @@ export default function PatientAppointments() {
           />
         </div>
       ) : (
-        <ul className="space-y-3">
+        <ul className="mx-auto w-full max-w-5xl space-y-3">
           {list.map((appointment) => {
             const doctorName = appointment.doctor_name ?? "Doctor";
+            const isConfirmed = appointment.status === "confirmed";
 
             return (
               <li
                 key={appointment.id}
                 className={cn(
-                  "rounded-xl border border-border bg-surface p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)] border-l-4",
+                  "rounded-2xl border border-border bg-surface p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)] border-l-4",
                   STATUS_COLORS[appointment.status],
                 )}
               >
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <YakapAvatar name={doctorName} color="#0B4F71" size={48} />
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <YakapAvatar name={doctorName} color="#0B4F71" size={40} />
                     <div>
-                      <div className="font-medium text-text-primary">
+                      <div className="text-sm font-semibold text-text-primary">
                         {doctorName}
                       </div>
-                      <div className="mt-1 text-xs text-text-muted">
+                      <div className="mt-0.5 text-xs text-text-muted">
                         {formatDate(appointment.scheduled_at)} · {formatTime(appointment.scheduled_at)}
                       </div>
                     </div>
@@ -383,8 +413,16 @@ export default function PatientAppointments() {
                   <StatusBadge status={appointment.status} />
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {appointment.status === "confirmed" ? (
+                <div className="mt-3 rounded-2xl border border-border bg-muted/20 px-3 py-2.5">
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <InfoPill label="Date" value={formatDate(appointment.scheduled_at)} />
+                    <InfoPill label="Time" value={formatTime(appointment.scheduled_at)} />
+                    <InfoPill label="Duration" value={`${appointment.duration_minutes} min`} />
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {isConfirmed ? (
                     <Button
                       size="sm"
                       className="bg-primary hover:bg-primary-mid"
@@ -416,11 +454,17 @@ export default function PatientAppointments() {
                   {tab === "past" && appointment.status === "completed" ? (
                     <>
                       <Link href={`/patient/appointments/${appointment.id}`}>
-                        <Button size="sm" variant="outline">Notes</Button>
+                        <Button
+                          size="sm"
+                          className="border-primary/20 bg-primary-light text-primary hover:bg-primary/20 hover:text-primary"
+                        >
+                          Notes
+                        </Button>
                       </Link>
                       <Button
                         size="sm"
                         variant="outline"
+                        className="border-border text-text-primary hover:bg-muted/30 hover:text-text-primary"
                         onClick={() => setRateId(appointment.id)}
                       >
                         {appointment.rating ? "Update Rating" : "Rate"}
@@ -438,7 +482,7 @@ export default function PatientAppointments() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="font-serif text-2xl">Cancel appointment?</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-text-secondary">
               This action will notify the doctor and cannot be undone.
             </DialogDescription>
           </DialogHeader>
@@ -461,18 +505,18 @@ export default function PatientAppointments() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="font-serif text-2xl">Reschedule appointment</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-text-secondary">
               Pick one of the doctor&apos;s available slots. The appointment will go back to pending for doctor confirmation.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {rescheduleAvailabilityLoading ? (
-              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-text-secondary">
+              <div className="flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-4 py-3 text-sm text-text-secondary">
                 <Loader2 className="h-4 w-4 animate-spin" /> Checking the doctor&apos;s current schedule...
               </div>
             ) : rescheduleAvailability?.slots?.length ? (
               <>
-                <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-text-secondary">
+                <div className="rounded-2xl border border-border bg-muted/30 p-4 text-sm text-text-secondary">
                   Available slots are based on Dr. {rescheduleTarget?.doctor_name ?? "the doctor"}&apos;s schedule and current bookings.
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -492,7 +536,7 @@ export default function PatientAppointments() {
                           setRescheduleTime("");
                         }
                       }}
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
                     >
                       {Array.from(
                         new Map(
@@ -513,7 +557,7 @@ export default function PatientAppointments() {
                     <select
                       value={rescheduleTime}
                       onChange={(event) => setRescheduleTime(event.target.value)}
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
                     >
                       {rescheduleSlotsForDate.map((slot) => (
                         <option key={slot.starts_at} value={toInputTime(slot.starts_at)}>
@@ -528,7 +572,7 @@ export default function PatientAppointments() {
                 </div>
               </>
             ) : (
-              <div className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-3 text-sm text-text-secondary">
+              <div className="rounded-2xl border border-dashed border-border bg-muted/30 px-4 py-3 text-sm text-text-secondary">
                 No open slots are available for this doctor in the next 14 days.
               </div>
             )}
@@ -552,7 +596,7 @@ export default function PatientAppointments() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="font-serif text-2xl">Rate appointment</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-text-secondary">
               Select how many stars you want to give Dr. {rateTarget?.doctor_name ?? "the doctor"}.
             </DialogDescription>
           </DialogHeader>
@@ -566,7 +610,7 @@ export default function PatientAppointments() {
                     type="button"
                     onClick={() => setRatingValue(value)}
                     className={cn(
-                      "rounded-full p-2 transition-transform hover:scale-105",
+                      "rounded-full p-2 transition-transform cursor-pointer hover:scale-105",
                       active ? "text-amber-500" : "text-border",
                     )}
                     aria-label={`${value} star${value === 1 ? "" : "s"}`}
@@ -596,6 +640,25 @@ export default function PatientAppointments() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function MetricCard({ label, value, helper }: { label: string; value: string; helper: string }) {
+  return (
+    <div className="rounded-2xl border border-white/60 bg-white/80 p-3.5 shadow-sm backdrop-blur">
+      <div className="text-xs font-medium uppercase tracking-wide text-text-muted">{label}</div>
+      <div className="mt-1.5 text-2xl font-serif text-text-primary">{value}</div>
+      <div className="mt-1 text-sm text-text-secondary">{helper}</div>
+    </div>
+  );
+}
+
+function InfoPill({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-surface px-3 py-2">
+      <div className="text-[11px] font-medium uppercase tracking-wide text-text-muted">{label}</div>
+      <div className="mt-0.5 text-sm font-medium text-text-primary">{value}</div>
     </div>
   );
 }

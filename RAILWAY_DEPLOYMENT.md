@@ -67,6 +67,17 @@ Why this is required:
 - private hosts like `postgres.railway.internal` do not resolve from local machines.
 - `railway ssh ...` runs inside Railway where the private DB host resolves.
 
+## Redeploy Commands
+
+Use these when the services already exist and you only need a fresh deployment:
+
+```bash
+railway redeploy --service backend --environment production
+railway redeploy --service frontendV2 --environment production
+```
+
+If you also need to refresh the database after redeploying, use the commands above in the Database Migration and Seed section.
+
 ## Useful Operational Commands
 
 ```bash

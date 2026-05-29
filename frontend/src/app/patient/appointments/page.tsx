@@ -172,8 +172,10 @@ export default function PatientAppointments() {
 
   useEffect(() => {
     if (!rescheduleTarget) return;
-    setRescheduleDate(toInputDate(rescheduleTarget.scheduled_at));
-    setRescheduleTime(toInputTime(rescheduleTarget.scheduled_at));
+    // Do not pre-fill the dropdowns; require the user to explicitly select
+    // a date and time when rescheduling.
+    setRescheduleDate("");
+    setRescheduleTime("");
   }, [rescheduleTarget]);
 
   useEffect(() => {
@@ -206,11 +208,9 @@ export default function PatientAppointments() {
 
         if (mounted) {
           setRescheduleAvailability(json.data ?? null);
-          const firstSlot = json.data?.slots?.[0];
-          if (firstSlot) {
-            setRescheduleDate(toInputDate(firstSlot.starts_at));
-            setRescheduleTime(toInputTime(firstSlot.starts_at));
-          }
+          // Do not auto-select the first available slot here. Keep the
+          // reschedule date/time as the current appointment values so
+          // users must explicitly choose a different slot if they want to.
         }
       } catch (error) {
         console.error("failed to fetch availability", error);
@@ -527,17 +527,12 @@ export default function PatientAppointments() {
                       onChange={(event) => {
                         const nextDate = event.target.value;
                         setRescheduleDate(nextDate);
-                        const firstSlotForDay = rescheduleAvailability.slots.find(
-                          (slot) => toInputDate(slot.starts_at) === nextDate,
-                        );
-                        if (firstSlotForDay) {
-                          setRescheduleTime(toInputTime(firstSlotForDay.starts_at));
-                        } else {
-                          setRescheduleTime("");
-                        }
+                        // Do not auto-select a time; user must pick explicitly.
+                        setRescheduleTime("");
                       }}
-                      className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                      className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm cursor-pointer"
                     >
+                      <option value="">Select a date</option>
                       {Array.from(
                         new Map(
                           rescheduleAvailability.slots.map((slot) => [
@@ -557,8 +552,10 @@ export default function PatientAppointments() {
                     <select
                       value={rescheduleTime}
                       onChange={(event) => setRescheduleTime(event.target.value)}
-                      className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                      disabled={!rescheduleDate}
+                      className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm cursor-pointer"
                     >
+                      <option value="">Select a time</option>
                       {rescheduleSlotsForDate.map((slot) => (
                         <option key={slot.starts_at} value={toInputTime(slot.starts_at)}>
                           {formatAvailabilityTime(slot.starts_at)} - {formatAvailabilityTime(slot.ends_at)}
@@ -583,7 +580,7 @@ export default function PatientAppointments() {
             </Button>
             <Button
               className="bg-primary hover:bg-primary-mid"
-              disabled={isSubmitting || !rescheduleSlotsForDate.length}
+              disabled={isSubmitting || !(rescheduleDate && rescheduleTime)}
               onClick={handleReschedule}
             >
               {isSubmitting ? "Saving..." : "Confirm Reschedule"}

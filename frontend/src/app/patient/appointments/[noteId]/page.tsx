@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { Loader2, ChevronLeft } from "lucide-react";
 
 import { YakapAvatar } from "@/components/shared/avatar";
-import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/api-client";
 
 type Note = {
@@ -19,7 +19,6 @@ type Note = {
 
 export default function PatientAppointmentNotes() {
   const params = useParams() as { noteId?: string };
-  const router = useRouter();
   const appointmentId = params.noteId ?? "";
 
   const [notes, setNotes] = useState<Note[] | null>(null);
@@ -74,7 +73,9 @@ export default function PatientAppointmentNotes() {
       <div className="rounded-xl border border-border bg-surface p-6 text-sm text-text-muted">
         Consultation notes are only available after the appointment is completed. Current status: <span className="font-medium text-text-primary">{appointmentStatus ?? "unknown"}</span>
         <div className="mt-4">
-          <Button onClick={() => router.back()} size="sm" variant="outline">Back</Button>
+          <Link href="/patient/appointments" className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary">
+            <ChevronLeft className="h-4 w-4" /> Back to appointments
+          </Link>
         </div>
       </div>
     );
@@ -85,7 +86,9 @@ export default function PatientAppointmentNotes() {
       <div className="rounded-xl border border-border bg-surface p-6 text-sm text-text-muted">
         No consultation notes found for this appointment.
         <div className="mt-4">
-          <Button onClick={() => router.back()} size="sm" variant="outline">Back</Button>
+          <Link href="/patient/appointments" className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary">
+            <ChevronLeft className="h-4 w-4" /> Back to appointments
+          </Link>
         </div>
       </div>
     );
@@ -108,7 +111,9 @@ export default function PatientAppointmentNotes() {
         </div>
       </div>
       <div>
-        <Button onClick={() => router.back()} size="sm" variant="outline">Back</Button>
+        <Link href="/patient/appointments" className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary">
+          <ChevronLeft className="h-4 w-4" /> Back to appointments
+        </Link>
       </div>
     </div>
   );

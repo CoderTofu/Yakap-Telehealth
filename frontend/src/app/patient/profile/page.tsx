@@ -1,12 +1,14 @@
 "use client";
 
 import { Camera } from "lucide-react";
+import { useState, useEffect } from "react";
+
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { YakapAvatar } from "@/components/shared/avatar";
-import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/api-client";
 
 export default function PatientProfile() {
@@ -18,6 +20,7 @@ export default function PatientProfile() {
   const [history, setHistory] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -70,143 +73,158 @@ export default function PatientProfile() {
     }
   }
 
+  function requestSave() {
+    setSaveConfirmOpen(true);
+  }
+
   return (
-    <div className="mx-auto grid max-w-4xl gap-6 lg:grid-cols-2">
+    <div className="mx-auto max-w-4xl">
       {isEditing ? (
-        <div className="lg:col-span-2 rounded-xl border border-primary/20 bg-primary-light px-4 py-3 text-sm text-primary">
+        <div className="mb-6 rounded-xl border border-primary/20 bg-primary-light px-4 py-3 text-sm text-primary">
           Editing mode is on. Use Save Changes to apply updates or Cancel to discard edits.
         </div>
       ) : null}
+
       <section className="rounded-xl border border-border bg-surface p-6 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="font-serif text-xl text-text-primary">Personal info</h3>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="font-serif text-xl text-text-primary">Patient Profile</h3>
+            <p className="mt-1 text-sm text-text-secondary">
+              Keep your personal and health details up to date.
+            </p>
+          </div>
           {!isEditing ? (
             <Button variant="outline" onClick={() => setIsEditing(true)}>
               Edit profile
             </Button>
           ) : null}
         </div>
-        <div className="mt-5 flex items-center gap-4">
-          <div className="group relative">
-            <YakapAvatar name={user.name} color={user.avatarColor} size={72} />
-            <button className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-white opacity-0 transition-opacity hover:opacity-100">
-              <Camera className="h-5 w-5" />
-            </button>
-          </div>
-          <div className="text-sm text-text-secondary">
-            Upload a photo so doctors can recognize you.
+
+        <div className="mt-6 flex items-center gap-4">
+          <YakapAvatar name={user.name} color={user.avatarColor} size={72} />
+          <div>
+            <div className="text-sm font-medium text-text-primary">{user.name}</div>
+            <div className="text-sm text-text-secondary">{user.email}</div>
           </div>
         </div>
-        <div className="mt-6 space-y-4">
-          <div className="space-y-1.5">
-            <Label>Full name</Label>
-            {isEditing ? (
-              <Input
-                value={user.name}
-                onChange={(e) =>
-                  setUser((u: any) => ({ ...(u ?? {}), name: e.target.value }))
-                }
-              />
-            ) : (
-              <ProfileValue>{user.name}</ProfileValue>
-            )}
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Full name</Label>
+              {isEditing ? (
+                <Input
+                  value={user.name}
+                  onChange={(e) =>
+                    setUser((u: any) => ({ ...(u ?? {}), name: e.target.value }))
+                  }
+                />
+              ) : (
+                <ProfileValue>{user.name}</ProfileValue>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Email</Label>
+              <ProfileValue>{user.email}</ProfileValue>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Phone number</Label>
+              {isEditing ? (
+                <Input
+                  value={phone ?? ""}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              ) : (
+                <ProfileValue>{phone ?? "Not set"}</ProfileValue>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Date of birth</Label>
+              {isEditing ? (
+                <Input
+                  type="date"
+                  value={dob ?? ""}
+                  onChange={(e) => setDob(e.target.value)}
+                />
+              ) : (
+                <ProfileValue>{formatDate(dob)}</ProfileValue>
+              )}
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <Label>Email</Label>
-            <ProfileValue>{user.email}</ProfileValue>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Phone number</Label>
-            {isEditing ? (
-              <Input
-                value={phone ?? ""}
-                onChange={(e) => setPhone(e.target.value)}
-              />
-            ) : (
-              <ProfileValue>{phone ?? "Not set"}</ProfileValue>
-            )}
-          </div>
-          <div className="space-y-1.5">
-            <Label>Date of birth</Label>
-            {isEditing ? (
-              <Input
-                type="date"
-                value={dob ?? ""}
-                onChange={(e) => setDob(e.target.value)}
-              />
-            ) : (
-              <ProfileValue>{formatDate(dob)}</ProfileValue>
-            )}
+
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Weight (kg)</Label>
+              {isEditing ? (
+                <Input
+                  type="number"
+                  value={weight ?? ""}
+                  onChange={(e) => setWeight(toNullableNumber(e.target.value))}
+                />
+              ) : (
+                <ProfileValue>{weight ?? "Not set"}</ProfileValue>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Height (cm)</Label>
+              {isEditing ? (
+                <Input
+                  type="number"
+                  value={height ?? ""}
+                  onChange={(e) => setHeight(toNullableNumber(e.target.value))}
+                />
+              ) : (
+                <ProfileValue>{height ?? "Not set"}</ProfileValue>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Medical history</Label>
+              {isEditing ? (
+                <Textarea
+                  rows={6}
+                  value={history ?? ""}
+                  onChange={(e) => setHistory(e.target.value)}
+                />
+              ) : (
+                <ProfileValue>{history?.trim() ? history : "Not set"}</ProfileValue>
+              )}
+            </div>
           </div>
         </div>
+
+        {isEditing ? (
+          <div className="mt-6 flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsEditing(false)}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-primary hover:bg-primary-mid"
+              disabled={saving}
+              onClick={requestSave}
+            >
+              {saving ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+        ) : null}
       </section>
 
-      <section className="rounded-xl border border-border bg-surface p-6 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h3 className="font-serif text-xl text-text-primary">Health details</h3>
-            <p className="mt-1 text-sm text-text-secondary">
-              Helps doctors provide more accurate care.
-            </p>
-          </div>
-          {isEditing ? (
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setIsEditing(false)}
-                disabled={saving}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="bg-primary hover:bg-primary-mid"
-                disabled={saving}
-                onClick={handleSave}
-              >
-                {saving ? "Saving..." : "Save Changes"}
-              </Button>
-            </div>
-          ) : null}
-        </div>
-        <div className="mt-6 grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label>Weight (kg)</Label>
-            {isEditing ? (
-              <Input
-                type="number"
-                value={weight ?? ""}
-                onChange={(e) => setWeight(toNullableNumber(e.target.value))}
-              />
-            ) : (
-              <ProfileValue>{weight ?? "Not set"}</ProfileValue>
-            )}
-          </div>
-          <div className="space-y-1.5">
-            <Label>Height (cm)</Label>
-            {isEditing ? (
-              <Input
-                type="number"
-                value={height ?? ""}
-                onChange={(e) => setHeight(toNullableNumber(e.target.value))}
-              />
-            ) : (
-              <ProfileValue>{height ?? "Not set"}</ProfileValue>
-            )}
-          </div>
-        </div>
-        <div className="mt-4 space-y-1.5">
-          <Label>Medical history</Label>
-          {isEditing ? (
-            <Textarea
-              rows={6}
-              value={history ?? ""}
-              onChange={(e) => setHistory(e.target.value)}
-            />
-          ) : (
-            <ProfileValue>{history?.trim() ? history : "Not set"}</ProfileValue>
-          )}
-        </div>
-      </section>
+      <ConfirmDialog
+        open={saveConfirmOpen}
+        onOpenChange={setSaveConfirmOpen}
+        title="Save profile changes?"
+        description="This will update your profile information for doctors and appointment records."
+        confirmLabel="Save Changes"
+        confirmingLabel="Saving..."
+        isConfirming={saving}
+        onConfirm={async () => {
+          setSaveConfirmOpen(false);
+          await handleSave();
+        }}
+      />
     </div>
   );
 }

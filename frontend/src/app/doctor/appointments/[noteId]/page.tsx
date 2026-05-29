@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, Save, Edit2, Sparkles, FileText, Stethoscope } from "lucide-react";
+import { Loader2, Save, Edit2, Sparkles, FileText, Stethoscope, ChevronLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -166,6 +167,11 @@ export default function AppointmentNotesPage() {
 
   return (
     <div className="space-y-6">
+      <div>
+        <Link href="/doctor/appointments" className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary">
+          <ChevronLeft className="h-4 w-4" /> Back to appointments
+        </Link>
+      </div>
       <section className="overflow-hidden rounded-3xl border border-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
         <div className="bg-linear-to-br from-primary-light via-surface to-surface px-6 py-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -183,10 +189,6 @@ export default function AppointmentNotesPage() {
                   <div className="mt-1 text-sm text-text-secondary">{formatDateTime(appointment.scheduled_at)}</div>
                 ) : null}
               </div>
-            </div>
-            <div className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-text-secondary">
-              <div className="font-medium text-text-primary">Appointment status</div>
-              <div className="mt-1 capitalize">{appointment?.status ?? "unknown"}</div>
             </div>
           </div>
 
@@ -207,7 +209,7 @@ export default function AppointmentNotesPage() {
       <div className="rounded-3xl border border-border bg-surface p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
         {!canEdit ? (
           <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-6 text-sm text-text-muted">
-            Consultation notes can only be added after the appointment is completed. Current status: <span className="font-medium text-text-primary">{appointment?.status ?? "unknown"}</span>.
+            Consultation notes can only be added after the appointment is completed. Current status: <span className="font-medium text-text-primary capitalize">{appointment?.status ?? "unknown"}</span>.
           </div>
         ) : !isEditing ? (
           <div className="space-y-4 text-sm">
@@ -296,7 +298,7 @@ function MiniCard({
         <Icon className="h-3.5 w-3.5" />
         {label}
       </div>
-      <div className="mt-2 text-lg font-semibold text-text-primary">{value}</div>
+      <div className="mt-2 text-lg font-semibold text-text-primary capitalize">{value}</div>
       <div className="mt-1 text-sm text-text-secondary">{helper}</div>
     </div>
   );

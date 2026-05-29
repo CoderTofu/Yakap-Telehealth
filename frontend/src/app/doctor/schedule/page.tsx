@@ -4,19 +4,13 @@ import { useEffect, useState } from "react";
 import { CalendarDays, Loader2, Plus, Save, Clock3, Sparkles } from "lucide-react";
 
 import { EmptyState } from "@/components/shared/empty-state";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
-
-type WeeklyScheduleRow = {
-  day_of_week: number;
-  start_time: string;
-  end_time: string;
-  enabled: boolean;
-};
 
 type ScheduleBlock = {
   id: string;
@@ -55,6 +49,7 @@ export default function DoctorSchedulePage() {
   const [savingWeekly, setSavingWeekly] = useState(false);
   const [savingBlock, setSavingBlock] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
   const [blockDate, setBlockDate] = useState("");
   const [blockStartTime, setBlockStartTime] = useState("");
   const [blockEndTime, setBlockEndTime] = useState("");
@@ -145,6 +140,7 @@ export default function DoctorSchedulePage() {
       }
       setWeekly(nextWeekly);
       setBlocks(json.data.blocks ?? []);
+      setIsEditing(false);
     } catch (error) {
       alert(error instanceof Error ? error.message : "Failed to save schedule");
     } finally {
@@ -153,7 +149,7 @@ export default function DoctorSchedulePage() {
   }
 
   function requestSaveWeeklySchedule() {
-    void saveWeeklySchedule();
+    setSaveConfirmOpen(true);
   }
 
   async function addBlock() {
@@ -314,7 +310,7 @@ export default function DoctorSchedulePage() {
                     </div>
                   </div>
                   {isEditing ? (
-                    <label className="flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-sm text-text-secondary">
+                    <label className="flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-sm text-text-secondary cursor-pointer">
                       <input
                         type="checkbox"
                         checked={row.enabled}
@@ -522,6 +518,20 @@ export default function DoctorSchedulePage() {
           </div>
         </div>
       </section>
+
+      <ConfirmDialog
+        open={saveConfirmOpen}
+        onOpenChange={setSaveConfirmOpen}
+        title="Save schedule changes?"
+        description="This will update the availability patients see when booking appointments."
+        confirmLabel="Save Changes"
+        confirmingLabel="Saving..."
+        isConfirming={savingWeekly}
+        onConfirm={async () => {
+          setSaveConfirmOpen(false);
+          await saveWeeklySchedule();
+        }}
+      />
     </div>
   );
 }

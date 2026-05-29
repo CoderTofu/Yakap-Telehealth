@@ -113,6 +113,54 @@ async function autoCancelExpiredPendingAppointments() {
   );
 }
 
+async function autoCompleteStaleConfirmedAppointments() {
+  const { rows } = await pool.query<{
+    id: string;
+    patient_id: string;
+    doctor_id: string;
+    scheduled_at: string;
+    doctor_name: string;
+    patient_name: string;
+  }>(
+    `UPDATE appointments a
+     SET
+       status = 'completed',
+       completed_at = COALESCE(completed_at, NOW())
+     FROM users doctor,
+          users patient
+     WHERE a.status = 'confirmed'
+       AND a.scheduled_at <= NOW() - INTERVAL '3 days'
+       AND doctor.id = a.doctor_id
+       AND patient.id = a.patient_id
+     RETURNING
+       a.id,
+       a.patient_id,
+       a.doctor_id,
+       a.scheduled_at::text,
+       doctor.name AS doctor_name,
+       patient.name AS patient_name`,
+  );
+
+  if (!rows.length) {
+    return;
+  }
+
+  await Promise.all(
+    rows.flatMap((appointment) => {
+      const scheduledLabel = formatNotificationSchedule(appointment.scheduled_at);
+      const patientMessage =
+        `Your confirmed appointment scheduled for ${scheduledLabel} was automatically marked completed after 3 days.`;
+      const doctorMessage =
+        `Your confirmed appointment with ${appointment.patient_name} scheduled for ${scheduledLabel} was automatically marked completed after 3 days.`;
+
+      return [
+        createNotification(appointment.patient_id, "appointment_completed", patientMessage),
+        createNotification(appointment.doctor_id, "appointment_completed", doctorMessage),
+      ];
+    }),
+  );
+}
+
 // Function to check if a doctor is available for a given time slot, considering their schedule, blocks, and existing appointments
 async function assertDoctorAvailable(
   doctorId: string,
@@ -311,6 +359,7 @@ export async function createAppointment(
 
 export async function listOwnAppointments(user: AuthUser) {
   await autoCancelExpiredPendingAppointments();
+  await autoCompleteStaleConfirmedAppointments();
 
   const field = user.role === "doctor" ? "doctor_id" : "patient_id";
 
@@ -807,6 +856,8 @@ export async function completeAppointment(
   doctorUser: AuthUser,
   appointmentId: string,
 ) {
+  await autoCompleteStaleConfirmedAppointments();
+
   const appointmentResult = await pool.query<{
     id: string;
     patient_id: string;

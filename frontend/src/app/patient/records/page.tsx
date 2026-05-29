@@ -107,7 +107,7 @@ export default function Records() {
               <div className="rounded-xl border border-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
                 <button
                   onClick={() => setOpenId(open ? null : r.id)}
-                  className="flex w-full items-center justify-between gap-4 p-5 text-left"
+                  className="flex w-full items-center justify-between gap-4 p-5 text-left cursor-pointer"
                 >
                   <div>
                     <div className="text-xs uppercase tracking-wide text-text-muted">

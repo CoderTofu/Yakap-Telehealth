@@ -135,12 +135,12 @@ export default function DoctorNotifications() {
     setItems((arr) =>
       arr ? arr.map((item) => (item.id === id ? { ...item, unread: false } : item)) : arr,
     );
-    notifyNotificationsChanged();
-
     try {
       await apiRequest(`/api/v1/notifications/${id}/read`, { method: "PATCH" });
     } catch (error) {
       console.error("failed to mark notification as read", error);
+    } finally {
+      notifyNotificationsChanged();
     }
   }
 
@@ -152,7 +152,6 @@ export default function DoctorNotifications() {
 
     setBusy(true);
     setItems((arr) => (arr ? arr.map((item) => ({ ...item, unread: false })) : arr));
-    notifyNotificationsChanged();
 
     try {
       await Promise.allSettled(
@@ -162,6 +161,7 @@ export default function DoctorNotifications() {
       );
     } finally {
       setBusy(false);
+      notifyNotificationsChanged();
     }
   }
 

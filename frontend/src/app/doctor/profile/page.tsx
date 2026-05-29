@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api-client";
 import { Camera } from "lucide-react";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +20,7 @@ export default function DoctorProfile() {
   const [fee, setFee] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -70,6 +72,10 @@ export default function DoctorProfile() {
     }
   }
 
+  function requestSave() {
+    setSaveConfirmOpen(true);
+  }
+
   return (
     <div className="mx-auto max-w-3xl">
       {isEditing ? (
@@ -78,6 +84,12 @@ export default function DoctorProfile() {
         </div>
       ) : null}
       <section className="rounded-xl border border-border bg-surface p-6 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+        <div className="mb-6">
+            <h3 className="font-serif text-xl text-text-primary">Doctor Profile</h3>
+            <p className="mt-1 text-sm text-text-secondary">
+             Keep your professional details current for patients and bookings.
+            </p>
+          </div>
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="group relative">
@@ -186,7 +198,7 @@ export default function DoctorProfile() {
               <Button
                 className="bg-primary hover:bg-primary-mid"
                 disabled={saving}
-                onClick={handleSave}
+                onClick={requestSave}
               >
                 {saving ? "Saving..." : "Save Changes"}
               </Button>
@@ -194,6 +206,20 @@ export default function DoctorProfile() {
           ) : null}
         </div>
       </section>
+
+      <ConfirmDialog
+        open={saveConfirmOpen}
+        onOpenChange={setSaveConfirmOpen}
+        title="Save profile changes?"
+        description="This will update your doctor profile for patients and appointments."
+        confirmLabel="Save Changes"
+        confirmingLabel="Saving..."
+        isConfirming={saving}
+        onConfirm={async () => {
+          setSaveConfirmOpen(false);
+          await handleSave();
+        }}
+      />
     </div>
   );
 }

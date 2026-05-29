@@ -348,7 +348,7 @@ export default function DoctorDetail() {
                   setSlot(null);
                 }}
                 className={cn(
-                  "rounded-lg border p-3 text-center transition-colors",
+                  "rounded-lg border p-3 text-center transition-colors cursor-pointer",
                   active
                     ? "border-primary bg-primary text-white"
                     : hasSlots

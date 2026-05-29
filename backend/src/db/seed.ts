@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { spawnSync } from "child_process";
 import path from "path";
+import { Client } from "pg";
 
 import { SPECIALTY_VALUES } from "../constants";
 
@@ -722,6 +723,39 @@ function buildSeedSql() {
 }
 
 function seed() {
+  if (process.env.DATABASE_URL) {
+    const client = new Client({ connectionString: process.env.DATABASE_URL });
+
+    client
+      .connect()
+      .then(async () => {
+        try {
+          await client.query(buildSeedSql());
+          console.log("Seed complete (direct DATABASE_URL).");
+          console.log(
+            `Inserted ${users.length} users, ${patientUsers.length} patient profiles, and ${doctorUsers.length} doctor profiles.`,
+          );
+          console.log(
+            `Inserted ${appointments.length} appointments and generated consultation notes and notifications.`,
+          );
+          await client.end();
+          process.exit(0);
+        } catch (error) {
+          console.error("Seed failed via DATABASE_URL.", error);
+          try {
+            await client.end();
+          } catch (_) {}
+          process.exit(1);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to connect for seed via DATABASE_URL.", error);
+        process.exit(1);
+      });
+
+    return;
+  }
+
   const result = spawnSync(
     "docker",
     [

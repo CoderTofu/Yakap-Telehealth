@@ -6,7 +6,8 @@
     "start": "node dist/index.js",
     "type-check": "tsc --noEmit",
     "db:migrate": "node scripts/db-migrate.js",
-    "db:seed": "ts-node src/db/seed.ts"
+    "db:seed": "ts-node src/db/seed.ts",
+    "db:bootstrap": "npm run db:migrate && npm run db:seed"
   },
   "dependencies": {
     "@google-apps/meet": "^0.7.2",

@@ -11,7 +11,7 @@ import doctorRoutes from "./routes/doctors";
 import notificationRoutes from "./routes/notifications";
 import patientRoutes from "./routes/patients";
 import profileRoutes from "./routes/profile";
-import geminiRoutes from "./routes/gemini"
+import geminiRoutes from "./routes/gemini";
 
 dotenv.config();
 
@@ -62,9 +62,9 @@ app.use("/api/v1/profile", profileRoutes);
 app.use("/api/v1/patients", patientRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
 
-// app.get("/health", (_req, res) => {
-//   res.json({ status: "ok", text: "API Online" });
-// });
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok", text: "API Online" });
+});
 
 app.use(errorHandler);
 

@@ -98,3 +98,8 @@ After connecting, expand `Schemas > public > Tables` to browse `users`, `patient
 ## Today's Implementation Notes
 
 For the latest full summary of the frontend, backend, database, architecture, and dependencies, see [docs/implementation-2026-05-27.md](docs/implementation-2026-05-27.md).
+
+## Railway Docs
+
+- Deployment guide: [RAILWAY_DEPLOYMENT.md](RAILWAY_DEPLOYMENT.md)
+- Deployment issue log and fixes: [docs/railway-deployment-issues-2026-05-29.md](docs/railway-deployment-issues-2026-05-29.md)

@@ -12,8 +12,8 @@ export function Logo({
         style={{ width: size, height: size }}
       >
         <svg
-          width={size * 0.55}
-          height={size * 0.55}
+          width={size * 0.70}
+          height={size * 0.70}
           viewBox="0 0 24 24"
           fill="none"
         >

@@ -73,7 +73,7 @@ Use these when the services already exist and you only need a fresh deployment:
 
 ```bash
 railway redeploy --service backend --environment production
-railway redeploy --service frontendV2 --environment production
+railway redeploy --service frontend --environment production
 ```
 
 If you also need to refresh the database after redeploying, use the commands above in the Database Migration and Seed section.

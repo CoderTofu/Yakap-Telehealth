@@ -4,15 +4,10 @@ This document records what failed during Railway deployment, why it failed, and 
 
 ## Final Topology
 
-- frontend service: `frontendV2`
+- frontend service: `frontend`
 - backend service: `backend`
 - database service: `Postgres`
 - environment: `production`
-
-Public domains:
-
-- frontend: `https://frontendv2-production-e733.up.railway.app`
-- backend: `https://backend-production-8edc.up.railway.app`
 
 ## Issue 1: Backend migration failed with missing SQL file
 
@@ -127,7 +122,7 @@ railway variable set NEXT_PUBLIC_SITE_URL=https://frontendv2-production-e733.up.
 Redeploy:
 
 ```bash
-railway redeploy --service frontendV2 --environment production
+railway redeploy --service frontend --environment production
 railway redeploy --service backend --environment production
 ```
 

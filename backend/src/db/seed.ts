@@ -778,4 +778,26 @@ function seed() {
   );
 }
 
-seed();
+// If invoked with --dump-sql, print the SQL and exit (non-destructive)
+if (process.argv.includes("--dump-sql")) {
+  // ensure buildSeedSql is available in this module
+  // @ts-ignore
+  const sql = (globalThis as any).buildSeedSql ? (globalThis as any).buildSeedSql() : null;
+  if (sql) {
+    console.log(sql);
+    process.exit(0);
+  }
+
+  // fallback: call local function if available
+  try {
+    // @ts-ignore
+    const localSql = buildSeedSql();
+    console.log(localSql);
+    process.exit(0);
+  } catch (e) {
+    console.error("Failed to dump seed SQL:", e);
+    process.exit(1);
+  }
+} else {
+  seed();
+}

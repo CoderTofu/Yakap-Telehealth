@@ -1,0 +1,16 @@
+FROM postgres:16-alpine
+
+ARG POSTGRES_USER=yakap
+ARG POSTGRES_PASSWORD=yakap_dev
+ARG POSTGRES_DB=yakap_db
+
+ENV POSTGRES_USER=${POSTGRES_USER}
+ENV POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+ENV POSTGRES_DB=${POSTGRES_DB}
+
+COPY docker/init.sql /docker-entrypoint-initdb.d/init.sql
+
+EXPOSE 5432
+
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 \
+  CMD ["pg_isready", "-U", "${POSTGRES_USER}"]

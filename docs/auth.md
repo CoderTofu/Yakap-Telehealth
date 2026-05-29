@@ -70,18 +70,14 @@ If the token is missing, invalid, or expired, the API returns `401`.
 
 ## How It Works
 
-- `apps/api/src/routes/auth.ts` mounts the auth routes.
-- `apps/api/src/controllers/auth.ts` handles the request and response shape.
-- `apps/api/src/middleware/auth.ts` verifies bearer tokens and attaches `req.user`.
 
 The middleware reads the token from the `Authorization` header, verifies it with `jsonwebtoken`, and populates `req.user` with the decoded user data.
 
-## What is a JWT (JSON Web Token)?
+ The server issues tokens with `issueAuthToken(user)` and verifies them with the `auth` middleware in `backend/src/middleware/auth.ts`.
 
-- A JWT is a compact, URL-safe token that represents a set of claims (data) about a user. It's composed of three base64url-encoded parts separated by dots: `header.payload.signature`.
-- The server signs the token (using `JWT_SECRET`) so the recipient can verify it wasn't tampered with.
-- In this project the token payload includes the user's `id`, `email`, `name`, and `role`. The token is also issued with a `sub` (subject) claim set to the user's id and an expiry (`exp`) of `7d`.
-- The server issues tokens with `issueAuthToken(user)` and verifies them with the `auth` middleware in `apps/api/src/middleware/auth.ts`.
+ `backend/src/routes/auth.ts` mounts the auth routes.
+ `backend/src/controllers/auth.ts` handles the request and response shape.
+ `backend/src/middleware/auth.ts` verifies bearer tokens and attaches `req.user`.
 
 ### Example: using the token from a client
 

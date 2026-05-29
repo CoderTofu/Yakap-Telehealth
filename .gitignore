@@ -30,4 +30,4 @@ Thumbs.db
 postgres_data/
 
 #secret
-apps/api/client-secret.json
+backend/client-secret.json

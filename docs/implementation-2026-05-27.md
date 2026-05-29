@@ -40,9 +40,9 @@ The design is intentionally role-based:
 
 Files:
 
-- [apps/web/src/components/shared/app-shell.tsx](../apps/web/src/components/shared/app-shell.tsx)
-- [apps/web/src/app/patient/patient-shell.tsx](../apps/web/src/app/patient/patient-shell.tsx)
-- [apps/web/src/app/doctor/doctor-shell.tsx](../apps/web/src/app/doctor/doctor-shell.tsx)
+- [frontend/src/components/shared/app-shell.tsx](../frontend/src/components/shared/app-shell.tsx)
+- [frontend/src/app/patient/patient-shell.tsx](../frontend/src/app/patient/patient-shell.tsx)
+- [frontend/src/app/doctor/doctor-shell.tsx](../frontend/src/app/doctor/doctor-shell.tsx)
 
 The main shell was consolidated into a reusable client component that powers both roles.
 
@@ -60,11 +60,11 @@ The patient and doctor shells only provide the role-specific nav items and logou
 
 Files:
 
-- [apps/web/src/app/login/page.tsx](../apps/web/src/app/login/page.tsx)
-- [apps/web/src/app/register/page.tsx](../apps/web/src/app/register/page.tsx)
-- [apps/web/src/lib/auth.ts](../apps/web/src/lib/auth.ts)
-- [apps/web/src/app/doctor/layout.tsx](../apps/web/src/app/doctor/layout.tsx)
-- [apps/web/src/app/patient/layout.tsx](../apps/web/src/app/patient/layout.tsx)
+- [frontend/src/app/login/page.tsx](../frontend/src/app/login/page.tsx)
+- [frontend/src/app/register/page.tsx](../frontend/src/app/register/page.tsx)
+- [frontend/src/lib/auth.ts](../frontend/src/lib/auth.ts)
+- [frontend/src/app/doctor/layout.tsx](../frontend/src/app/doctor/layout.tsx)
+- [frontend/src/app/patient/layout.tsx](../frontend/src/app/patient/layout.tsx)
 
 Login and register now do more than submit credentials:
 
@@ -82,13 +82,13 @@ This gives the app a hybrid session model:
 
 Files:
 
-- [apps/web/src/app/patient/dashboard/page.tsx](../apps/web/src/app/patient/dashboard/page.tsx)
-- [apps/web/src/app/patient/doctors/page.tsx](../apps/web/src/app/patient/doctors/page.tsx)
-- [apps/web/src/app/patient/doctors/[id.tsx]/page.tsx](../apps/web/src/app/patient/doctors/[id.tsx]/page.tsx)
-- [apps/web/src/app/patient/appointments/page.tsx](../apps/web/src/app/patient/appointments/page.tsx)
-- [apps/web/src/app/patient/records/page.tsx](../apps/web/src/app/patient/records/page.tsx)
-- [apps/web/src/app/patient/profile/page.tsx](../apps/web/src/app/patient/profile/page.tsx)
-- [apps/web/src/app/patient/notifications/page.tsx](../apps/web/src/app/patient/notifications/page.tsx)
+- [frontend/src/app/patient/dashboard/page.tsx](../frontend/src/app/patient/dashboard/page.tsx)
+- [frontend/src/app/patient/doctors/page.tsx](../frontend/src/app/patient/doctors/page.tsx)
+- [frontend/src/app/patient/doctors/[id.tsx]/page.tsx](../frontend/src/app/patient/doctors/[id.tsx]/page.tsx)
+- [frontend/src/app/patient/appointments/page.tsx](../frontend/src/app/patient/appointments/page.tsx)
+- [frontend/src/app/patient/records/page.tsx](../frontend/src/app/patient/records/page.tsx)
+- [frontend/src/app/patient/profile/page.tsx](../frontend/src/app/patient/profile/page.tsx)
+- [frontend/src/app/patient/notifications/page.tsx](../frontend/src/app/patient/notifications/page.tsx)
 
 The patient experience now covers the full booking path:
 
@@ -105,12 +105,12 @@ The booking UI no longer relies on free-form date/time input. It now derives sel
 
 Files:
 
-- [apps/web/src/app/doctor/dashboard/page.tsx](../apps/web/src/app/doctor/dashboard/page.tsx)
-- [apps/web/src/app/doctor/appointments/page.tsx](../apps/web/src/app/doctor/appointments/page.tsx)
-- [apps/web/src/app/doctor/schedule/page.tsx](../apps/web/src/app/doctor/schedule/page.tsx)
-- [apps/web/src/app/doctor/patients/page.tsx](../apps/web/src/app/doctor/patients/page.tsx)
-- [apps/web/src/app/doctor/profile/page.tsx](../apps/web/src/app/doctor/profile/page.tsx)
-- [apps/web/src/app/doctor/notifications/page.tsx](../apps/web/src/app/doctor/notifications/page.tsx)
+- [frontend/src/app/doctor/dashboard/page.tsx](../frontend/src/app/doctor/dashboard/page.tsx)
+- [frontend/src/app/doctor/appointments/page.tsx](../frontend/src/app/doctor/appointments/page.tsx)
+- [frontend/src/app/doctor/schedule/page.tsx](../frontend/src/app/doctor/schedule/page.tsx)
+- [frontend/src/app/doctor/patients/page.tsx](../frontend/src/app/doctor/patients/page.tsx)
+- [frontend/src/app/doctor/profile/page.tsx](../frontend/src/app/doctor/profile/page.tsx)
+- [frontend/src/app/doctor/notifications/page.tsx](../frontend/src/app/doctor/notifications/page.tsx)
 
 The doctor side now supports:
 
@@ -125,12 +125,12 @@ The doctor side now supports:
 
 Files:
 
-- [apps/web/src/components/shared/avatar.tsx](../apps/web/src/components/shared/avatar.tsx)
-- [apps/web/src/components/shared/status-badge.tsx](../apps/web/src/components/shared/status-badge.tsx)
-- [apps/web/src/components/shared/empty-state.tsx](../apps/web/src/components/shared/empty-state.tsx)
-- [apps/web/src/components/ui/dialog.tsx](../apps/web/src/components/ui/dialog.tsx)
-- [apps/web/src/lib/dashboard-data.ts](../apps/web/src/lib/dashboard-data.ts)
-- [apps/web/src/lib/appConfig.tsx](../apps/web/src/lib/appConfig.tsx)
+- [frontend/src/components/shared/avatar.tsx](../frontend/src/components/shared/avatar.tsx)
+- [frontend/src/components/shared/status-badge.tsx](../frontend/src/components/shared/status-badge.tsx)
+- [frontend/src/components/shared/empty-state.tsx](../frontend/src/components/shared/empty-state.tsx)
+- [frontend/src/components/ui/dialog.tsx](../frontend/src/components/ui/dialog.tsx)
+- [frontend/src/lib/dashboard-data.ts](../frontend/src/lib/dashboard-data.ts)
+- [frontend/src/lib/appConfig.tsx](../frontend/src/lib/appConfig.tsx)
 
 The shared UI work focused on making the dashboards usable with a small set of reusable pieces:
 
@@ -146,13 +146,13 @@ The shared UI work focused on making the dashboards usable with a small set of r
 
 Files:
 
-- [apps/api/src/index.ts](../apps/api/src/index.ts)
-- [apps/api/src/routes/auth.ts](../apps/api/src/routes/auth.ts)
-- [apps/api/src/routes/doctors.ts](../apps/api/src/routes/doctors.ts)
-- [apps/api/src/routes/appointments.ts](../apps/api/src/routes/appointments.ts)
-- [apps/api/src/routes/profile.ts](../apps/api/src/routes/profile.ts)
-- [apps/api/src/routes/patients.ts](../apps/api/src/routes/patients.ts)
-- [apps/api/src/routes/notifications.ts](../apps/api/src/routes/notifications.ts)
+- [backend/src/index.ts](../backend/src/index.ts)
+- [backend/src/routes/auth.ts](../backend/src/routes/auth.ts)
+- [backend/src/routes/doctors.ts](../backend/src/routes/doctors.ts)
+- [backend/src/routes/appointments.ts](../backend/src/routes/appointments.ts)
+- [backend/src/routes/profile.ts](../backend/src/routes/profile.ts)
+- [backend/src/routes/patients.ts](../backend/src/routes/patients.ts)
+- [backend/src/routes/notifications.ts](../backend/src/routes/notifications.ts)
 
 The API now exposes a cleaner modular layout:
 
@@ -169,9 +169,9 @@ The server is configured with `helmet`, `cors`, `morgan`, and JSON body parsing,
 
 Files:
 
-- [apps/api/src/middleware/auth.ts](../apps/api/src/middleware/auth.ts)
-- [apps/api/src/controllers/auth.ts](../apps/api/src/controllers/auth.ts)
-- [apps/api/src/services/auth.ts](../apps/api/src/services/auth.ts)
+- [backend/src/middleware/auth.ts](../backend/src/middleware/auth.ts)
+- [backend/src/controllers/auth.ts](../backend/src/controllers/auth.ts)
+- [backend/src/services/auth.ts](../backend/src/services/auth.ts)
 
 Auth is built around JWT bearer tokens:
 
@@ -185,9 +185,9 @@ This keeps the route handlers thin while pushing validation and access rules int
 
 Files:
 
-- [apps/api/src/controllers/doctors.ts](../apps/api/src/controllers/doctors.ts)
-- [apps/api/src/services/doctors.ts](../apps/api/src/services/doctors.ts)
-- [apps/api/src/middleware/doctors.ts](../apps/api/src/middleware/doctors.ts)
+- [backend/src/controllers/doctors.ts](../backend/src/controllers/doctors.ts)
+- [backend/src/services/doctors.ts](../backend/src/services/doctors.ts)
+- [backend/src/middleware/doctors.ts](../backend/src/middleware/doctors.ts)
 
 The doctor module now covers both public discovery and doctor-owned management flows.
 
@@ -210,8 +210,8 @@ Important design detail:
 
 Files:
 
-- [apps/api/src/controllers/appointments.ts](../apps/api/src/controllers/appointments.ts)
-- [apps/api/src/services/appointments.ts](../apps/api/src/services/appointments.ts)
+- [backend/src/controllers/appointments.ts](../backend/src/controllers/appointments.ts)
+- [backend/src/services/appointments.ts](../backend/src/services/appointments.ts)
 
 This is the most workflow-heavy part of the backend.
 
@@ -238,10 +238,10 @@ Key business rules:
 
 Files:
 
-- [apps/api/src/controllers/patients.ts](../apps/api/src/controllers/patients.ts)
-- [apps/api/src/services/patients.ts](../apps/api/src/services/patients.ts)
-- [apps/api/src/controllers/profile.ts](../apps/api/src/controllers/profile.ts)
-- [apps/api/src/services/profile.ts](../apps/api/src/services/profile.ts)
+- [backend/src/controllers/patients.ts](../backend/src/controllers/patients.ts)
+- [backend/src/services/patients.ts](../backend/src/services/patients.ts)
+- [backend/src/controllers/profile.ts](../backend/src/controllers/profile.ts)
+- [backend/src/services/profile.ts](../backend/src/services/profile.ts)
 
 These modules support the user-facing account views and the patient records page.
 
@@ -255,8 +255,8 @@ They provide:
 
 Files:
 
-- [apps/api/src/controllers/notifications.ts](../apps/api/src/controllers/notifications.ts)
-- [apps/api/src/services/notifications.ts](../apps/api/src/services/notifications.ts)
+- [backend/src/controllers/notifications.ts](../backend/src/controllers/notifications.ts)
+- [backend/src/services/notifications.ts](../backend/src/services/notifications.ts)
 
 Notifications are used as the lightweight event trail for appointment actions.
 
@@ -273,7 +273,7 @@ The current implementation creates notifications for:
 Files:
 
 - [docker/init.sql](../docker/init.sql)
-- [apps/api/src/db/seed.ts](../apps/api/src/db/seed.ts)
+- [backend/src/db/seed.ts](../backend/src/db/seed.ts)
 - [docs/database.md](../docs/database.md)
 
 The schema now supports the full telehealth workflow:
@@ -383,8 +383,8 @@ Current repo-level scripts used during this work:
 - `npm run docker:up`
 - `npm run db:migrate`
 - `npm run db:seed`
-- `npm run type-check --workspace=apps/web`
-- `npm run type-check --workspace=apps/api`
+- `npm run type-check --workspace=frontend`
+- `npm run type-check --workspace=backend`
 
 The implementation is now organized so each layer owns its own concerns:
 

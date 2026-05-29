@@ -11,9 +11,8 @@
 
 ```
 yakap/
-├── apps/
-│   ├── web/          # Next.js frontend (port 3000)
-│   └── api/          # Express backend (port 4000)
+├── frontend/         # Next.js frontend (port 3000)
+├── backend/          # Express backend (port 4000)
 ├── docker/           # Docker init scripts
 └── docker-compose.yml
 ```
@@ -41,8 +40,8 @@ npm run docker:up
 
 ```bash
 cp .env.example .env
-cp apps/api/.env.example apps/api/.env
-cp apps/web/.env.example apps/web/.env
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 ```
 
 ### 4. Run development servers

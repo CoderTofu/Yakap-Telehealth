@@ -22,7 +22,7 @@ npm run docker:up
 
 There is a `docker-compose.override.yml` provided for local development. The override file:
 
-- Adds bind mounts so your workspace files inside `apps/` are visible to containers (no rebuild required for code changes).
+- Adds bind mounts so your workspace files inside `frontend/` and `backend/` are visible to containers (no rebuild required for code changes).
 - Runs the app in dev mode inside the container (e.g. `npm run dev`), enabling hot-reload or `ts-node-dev` restarts.
 
 To start services using the override file (recommended for development):
@@ -60,11 +60,11 @@ Current values: `patient`, `doctor`
 
 If you add or replace a role, update all of these places:
 
-- [apps/api/src/constants.ts](../apps/api/src/constants.ts) for API validation
-- [apps/api/src/controllers/auth.ts](../apps/api/src/controllers/auth.ts) for registration checks
-- [apps/web/src/app/register/page.tsx](../apps/web/src/app/register/page.tsx) for the role selector UI
+- [backend/src/constants.ts](../backend/src/constants.ts) for API validation
+- [backend/src/controllers/auth.ts](../backend/src/controllers/auth.ts) for registration checks
+- [frontend/src/app/register/page.tsx](../frontend/src/app/register/page.tsx) for the role selector UI
 - [docker/init.sql](../docker/init.sql) for the SQL `CHECK` constraint
-- [apps/api/src/db/seed.ts](../apps/api/src/db/seed.ts) for seeded rows
+- [backend/src/db/seed.ts](../backend/src/db/seed.ts) for seeded rows
 
 ### Specializations
 
@@ -72,11 +72,11 @@ Current values: `cardiology`, `dermatology`, `pediatrics`, `neurology`, `orthope
 
 If you add or replace a specialization, update all of these places:
 
-- [apps/api/src/constants.ts](../apps/api/src/constants.ts) for API validation
-- [apps/web/src/components/shared/appConfig.tsx](../apps/web/src/components/shared/appConfig.tsx) for the display label and icon list
-- [apps/web/src/app/register/page.tsx](../apps/web/src/app/register/page.tsx) if the form needs different behavior
+- [backend/src/constants.ts](../backend/src/constants.ts) for API validation
+- [frontend/src/components/shared/appConfig.tsx](../frontend/src/components/shared/appConfig.tsx) for the display label and icon list
+- [frontend/src/app/register/page.tsx](../frontend/src/app/register/page.tsx) if the form needs different behavior
 - [docker/init.sql](../docker/init.sql) for the SQL `CHECK` constraint
-- [apps/api/src/db/seed.ts](../apps/api/src/db/seed.ts) for seeded doctor profiles
+- [backend/src/db/seed.ts](../backend/src/db/seed.ts) for seeded doctor profiles
 
 Both `role` and `specialization` are case-sensitive in the SQL constraints and the API checks, so use the exact lowercase values above when inserting rows directly.
 
@@ -144,17 +144,17 @@ Simple user notifications with `is_read` tracking.
 The `db:migrate` script runs the SQL in [docker/init.sql](../docker/init.sql) inside the running `db` container.
 
 ```bash
-npm run db:migrate --workspace=apps/api
+npm run db:migrate --workspace=backend
 ```
 
 This is the current schema bootstrap step.
 
 ### Seed data
 
-The `db:seed` script is a TypeScript runner in [apps/api/src/db/seed.ts](../apps/api/src/db/seed.ts).
+The `db:seed` script is a TypeScript runner in [backend/src/db/seed.ts](../backend/src/db/seed.ts).
 
 ```bash
-npm run db:seed --workspace=apps/api
+npm run db:seed --workspace=backend
 ```
 
 It:
@@ -188,8 +188,8 @@ If you want a fresh database, run:
 ```bash
 docker compose down -v
 npm run docker:up
-npm run db:migrate --workspace=apps/api
-npm run db:seed --workspace=apps/api
+npm run db:migrate --workspace=backend
+npm run db:seed --workspace=backend
 ```
 
 ## Troubleshooting

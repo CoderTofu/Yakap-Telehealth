@@ -4,9 +4,9 @@
 This document summarizes the changes made on 2026-05-28: richer DB seed, removal of `asyncHandler`, route updates, and documentation of the Gemini AI recommendation flow.
 
 ## Files added/changed
-- apps/api/src/db/seed.ts — Rewrote seed to generate appointments, consultation notes, and notifications.
-- apps/api/src/routes/*.ts — Updated route files to remove `asyncHandler` and call controllers directly (auth, profile, patients, notifications, gemini, doctors, appointments).
-- apps/api/src/utils/asyncHandler.ts — Deleted.
+ - backend/src/db/seed.ts — Rewrote seed to generate appointments, consultation notes, and notifications.
+ - backend/src/routes/*.ts — Updated route files to remove `asyncHandler` and call controllers directly (auth, profile, patients, notifications, gemini, doctors, appointments).
+ - backend/src/utils/asyncHandler.ts — Deleted.
 
 New documentation file: docs/implementation-summary-2026-05-28.md (this file).
 
@@ -28,7 +28,7 @@ Recommended options (pick one):
 - Add explicit try/catch in controllers to call `next(err)`.
 
 ## Gemini (AI) recommendation flow
-- Endpoint: `POST /api/v1/gemini` implemented in `apps/api/src/controllers/gemini.ts`.
+ - Endpoint: `POST /api/v1/gemini` implemented in `backend/src/controllers/gemini.ts`.
 - Input: free text describing doctor expertise or CV text.
 - Prompting: the controller sends an instruction to the Gemini model asking for strict JSON: `{"specialization": ["...","..."]}` where values should be drawn from a known whitelist (`SPECIALTY_VALUES`).
 - Parsing: current logic reads `response.text` and runs `JSON.parse`, then validates the `specialization` field.
@@ -55,10 +55,10 @@ Run the DB migration and seed commands in the repo root (requires Docker compose
 
 ```bash
 # Apply schema
-npm run db:migrate --workspace=apps/api
+ npm run db:migrate --workspace=backend
 
 # Run seed
-npm run db:seed --workspace=apps/api
+ npm run db:seed --workspace=backend
 ```
 
 If you prefer workspace-agnostic npm scripts run them from repo root without `--workspace` depending on your package manager setup.

@@ -1,6 +1,6 @@
 services:
   api:
-    command: npm run dev --workspace=apps/api
+    command: npm run dev --workspace=backend
     environment:
       NODE_ENV: development
       CHOKIDAR_USEPOLLING: "true"
@@ -10,7 +10,7 @@ services:
       - /app/node_modules
 
   web:
-    command: npm run dev --workspace=apps/web
+    command: npm run dev --workspace=frontend
     environment:
       NODE_ENV: development
       CHOKIDAR_USEPOLLING: "true"

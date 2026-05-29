@@ -6,7 +6,7 @@ This document summarizes the frontend and backend logic built and refactored for
 
 ### Register flow
 
-File: [apps/web/src/app/register/page.tsx](../apps/web/src/app/register/page.tsx)
+File: [frontend/src/app/register/page.tsx](../frontend/src/app/register/page.tsx)
 
 The register page is a three-step form.
 
@@ -18,7 +18,7 @@ The register page is a three-step form.
 
 Behavior built today:
 
-- Specialization is restricted to the allowed list from [apps/web/src/lib/appConfig.tsx](../apps/web/src/lib/appConfig.tsx).
+- Specialization is restricted to the allowed list from [frontend/src/lib/appConfig.tsx](../frontend/src/lib/appConfig.tsx).
 - The doctor years-of-experience field stays controlled as a string while typing and is converted only when building the payload.
 - The form validates required fields before sending the request.
 - On success, it stores `authToken` and `authUser` in `localStorage`.
@@ -28,7 +28,7 @@ Behavior built today:
 
 ### Login flow
 
-File: [apps/web/src/app/login/page.tsx](../apps/web/src/app/login/page.tsx)
+File: [frontend/src/app/login/page.tsx](../frontend/src/app/login/page.tsx)
 
 The login form now submits email and password to the API.
 
@@ -46,9 +46,9 @@ Behavior built today:
 
 Files:
 
-- [apps/web/src/components/shared/app-shell.tsx](../apps/web/src/components/shared/app-shell.tsx)
-- [apps/web/src/app/patient/dashboard/page.tsx](../apps/web/src/app/patient/dashboard/page.tsx)
-- [apps/web/src/app/doctor/dashboard/page.tsx](../apps/web/src/app/doctor/dashboard/page.tsx)
+- [frontend/src/components/shared/app-shell.tsx](../frontend/src/components/shared/app-shell.tsx)
+- [frontend/src/app/patient/dashboard/page.tsx](../frontend/src/app/patient/dashboard/page.tsx)
+- [frontend/src/app/doctor/dashboard/page.tsx](../frontend/src/app/doctor/dashboard/page.tsx)
 
 The copied TanStack Router shell was converted into a Next-compatible client component.
 
@@ -66,10 +66,10 @@ The patient and doctor dashboards now use that shell and local demo data so they
 
 Files:
 
-- [apps/web/src/components/shared/avatar.tsx](../apps/web/src/components/shared/avatar.tsx)
-- [apps/web/src/components/shared/status-badge.tsx](../apps/web/src/components/shared/status-badge.tsx)
-- [apps/web/src/lib/dashboard-data.ts](../apps/web/src/lib/dashboard-data.ts)
-- [apps/web/src/lib/appConfig.tsx](../apps/web/src/lib/appConfig.tsx)
+- [frontend/src/components/shared/avatar.tsx](../frontend/src/components/shared/avatar.tsx)
+- [frontend/src/components/shared/status-badge.tsx](../frontend/src/components/shared/status-badge.tsx)
+- [frontend/src/lib/dashboard-data.ts](../frontend/src/lib/dashboard-data.ts)
+- [frontend/src/lib/appConfig.tsx](../frontend/src/lib/appConfig.tsx)
 
 What they do:
 
@@ -84,10 +84,10 @@ What they do:
 
 Files:
 
-- [apps/api/src/controllers/auth.ts](../apps/api/src/controllers/auth.ts)
-- [apps/api/src/services/auth.ts](../apps/api/src/services/auth.ts)
-- [apps/api/src/routes/auth.ts](../apps/api/src/routes/auth.ts)
-- [apps/api/src/index.ts](../apps/api/src/index.ts)
+- [backend/src/controllers/auth.ts](../backend/src/controllers/auth.ts)
+- [backend/src/services/auth.ts](../backend/src/services/auth.ts)
+- [backend/src/routes/auth.ts](../backend/src/routes/auth.ts)
+- [backend/src/index.ts](../backend/src/index.ts)
 
 The API exposes:
 
@@ -119,13 +119,13 @@ Register logic:
 
 ### Auth middleware
 
-File: [apps/api/src/middleware/auth.ts](../apps/api/src/middleware/auth.ts)
+File: [backend/src/middleware/auth.ts](../backend/src/middleware/auth.ts)
 
 The middleware verifies bearer tokens, decodes the JWT, and attaches the authenticated user to `req.user`.
 
 ### Canonical constants
 
-File: [apps/api/src/constants.ts](../apps/api/src/constants.ts)
+File: [backend/src/constants.ts](../backend/src/constants.ts)
 
 The API now owns the canonical allowed lists for:
 
@@ -137,7 +137,7 @@ The API now owns the canonical allowed lists for:
 Files:
 
 - [docker/init.sql](../docker/init.sql)
-- [apps/api/src/db/seed.ts](../apps/api/src/db/seed.ts)
+- [backend/src/db/seed.ts](../backend/src/db/seed.ts)
 - [docs/database.md](../docs/database.md)
 
 Database behavior built today:
@@ -151,25 +151,25 @@ Database behavior built today:
 
 - The frontend dashboards currently use local demo data so they can render without the missing mock modules from the copied code.
 - `packages/shared` was removed, so the workspace no longer depends on a `packages/` folder.
-- The project now keeps logic in app-local files such as [apps/api/src/constants.ts](../apps/api/src/constants.ts) and [apps/web/src/lib/appConfig.tsx](../apps/web/src/lib/appConfig.tsx).
+- The project now keeps logic in app-local files such as [backend/src/constants.ts](../backend/src/constants.ts) and [frontend/src/lib/appConfig.tsx](../frontend/src/lib/appConfig.tsx).
 
 ## Verification
 
 Type-checks passed after the refactor:
 
-- `npm run type-check --workspace=apps/web`
-- `npm run type-check --workspace=apps/api`
+- `npm run type-check --workspace=frontend`
+- `npm run type-check --workspace=backend`
 
 ## Role-based access control (server + client)
 
 Files added/changed:
 
-- [apps/web/src/lib/auth.ts](../apps/web/src/lib/auth.ts): server-side helper which reads an `authUser` cookie (JSON) via `next/headers` and exposes `getCurrentUser()` for server components/layouts.
-- [apps/web/src/app/doctor/layout.tsx](../apps/web/src/app/doctor/layout.tsx): server `layout.tsx` that calls `getCurrentUser()` and redirects to `/login` when the user is missing or not a `doctor`.
-- [apps/web/src/app/patient/layout.tsx](../apps/web/src/app/patient/layout.tsx): server `layout.tsx` that calls `getCurrentUser()` and redirects to `/login` when the user is missing or not a `patient`.
-- [apps/web/src/app/login/page.tsx](../apps/web/src/app/login/page.tsx): mirrors `authToken` and `authUser` into document cookies on successful login (in addition to `localStorage`) so server layouts can read role on first render.
-- [apps/web/src/app/register/page.tsx](../apps/web/src/app/register/page.tsx): same cookie-mirroring on successful registration.
-- [apps/web/src/app/doctor/dashboard/page.tsx](../apps/web/src/app/doctor/dashboard/page.tsx): client fix — dashboard now reads `authUser` from `localStorage` in the client, adds a loading guard, and clears cookies on logout.
+- [frontend/src/lib/auth.ts](../frontend/src/lib/auth.ts): server-side helper which reads an `authUser` cookie (JSON) via `next/headers` and exposes `getCurrentUser()` for server components/layouts.
+- [frontend/src/app/doctor/layout.tsx](../frontend/src/app/doctor/layout.tsx): server `layout.tsx` that calls `getCurrentUser()` and redirects to `/login` when the user is missing or not a `doctor`.
+- [frontend/src/app/patient/layout.tsx](../frontend/src/app/patient/layout.tsx): server `layout.tsx` that calls `getCurrentUser()` and redirects to `/login` when the user is missing or not a `patient`.
+- [frontend/src/app/login/page.tsx](../frontend/src/app/login/page.tsx): mirrors `authToken` and `authUser` into document cookies on successful login (in addition to `localStorage`) so server layouts can read role on first render.
+- [frontend/src/app/register/page.tsx](../frontend/src/app/register/page.tsx): same cookie-mirroring on successful registration.
+- [frontend/src/app/doctor/dashboard/page.tsx](../frontend/src/app/doctor/dashboard/page.tsx): client fix — dashboard now reads `authUser` from `localStorage` in the client, adds a loading guard, and clears cookies on logout.
 
 Notes and rationale:
 
@@ -182,4 +182,3 @@ Next recommended tasks:
 - Replace client-set cookies with server-set HttpOnly `Set-Cookie` on the API login/register endpoints.
 - Add API middleware `requireRole(role)` to protect API routes server-side (e.g., `/api/v1/appointments/doctor/*`).
 - Hide/show navigation links client-side by reading `authUser` from `localStorage` or `/api/v1/auth/me`.
-

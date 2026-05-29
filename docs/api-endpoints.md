@@ -1,6 +1,6 @@
 # API Endpoints Reference
 
-This document describes the API endpoints currently implemented in `apps/api/src`, including:
+This document describes the API endpoints currently implemented in `backend/src`, including:
 
 - request parameters
 - authentication and role rules
@@ -668,7 +668,7 @@ Current direct API usage in web pages:
 
 Current frontend state for the rest:
 
-- Dashboard/appointments/doctors views still rely on local mock data in `apps/web/src/lib/dashboard-data.ts`.
+ - Dashboard/appointments/doctors views still rely on local mock data in `frontend/src/lib/dashboard-data.ts`.
 
 Planned integration map:
 

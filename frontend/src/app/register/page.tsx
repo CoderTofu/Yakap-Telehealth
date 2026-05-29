@@ -35,17 +35,16 @@ export default function Register() {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
-  const [phoneNum, setPhoneNum] = useState<string>("");
+  const [phoneNum, setPhoneNum] = useState<string>("+63 ");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const passStrength = scorePass(password);
 
   // Doctors
-  const [specialization, setSpecialization] = useState<Specialty>(
-    SPECIALTIES[0].value,
-  );
+  const [specialization, setSpecialization] = useState<Specialty | "">("");
   const [licenseNumber, setLicenseNumber] = useState<string>("");
   const [yearsOE, setYearsOE] = useState<string>("");
+  const [consultationFee, setConsultationFee] = useState<string>("");
   const [bio, setBio] = useState<string>("");
 
   // Patients
@@ -53,6 +52,101 @@ export default function Register() {
   const [weight, setWeight] = useState<string>("");
   const [height, setHeight] = useState<string>("");
   const [history, setHistory] = useState<string>("");
+
+  function validateStepTwo() {
+    const normalizedName = fullName.trim().replace(/\s+/g, " ");
+
+    if (!normalizedName) {
+      setErrorMessage("Full name is required.");
+      return false;
+    }
+
+    if (!isValidFullName(normalizedName)) {
+      setErrorMessage(
+        "Please enter your full name (at least first and last name).",
+      );
+      return false;
+    }
+
+    const normalizedEmail = email.trim();
+
+    if (!normalizedEmail) {
+      setErrorMessage("Email is required.");
+      return false;
+    }
+
+    if (!isValidEmail(normalizedEmail)) {
+      setErrorMessage("Please enter a valid email address.");
+      return false;
+    }
+
+    if (!password) {
+      setErrorMessage("Password is required.");
+      return false;
+    }
+
+    const passwordError = getPasswordValidationError(password);
+
+    if (passwordError) {
+      setErrorMessage(passwordError);
+      return false;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMessage("Passwords do not match.");
+      return false;
+    }
+
+    if (!isValidPhoneNumber(phoneNum)) {
+      setErrorMessage("Phone number must follow +63 9xx xxx xxxx.");
+      return false;
+    }
+
+    return true;
+  }
+
+  function validateStepThree() {
+    if (role === "doctor") {
+      if (!specialization) {
+        setErrorMessage("Specialization is required.");
+        return false;
+      }
+
+      if (!licenseNumber.trim()) {
+        setErrorMessage("License number is required.");
+        return false;
+      }
+
+      if (!yearsOE.trim()) {
+        setErrorMessage("Years of experience is required.");
+        return false;
+      }
+
+      if (!consultationFee.trim() || Number(consultationFee) <= 0) {
+        setErrorMessage("Consultation fee is required.");
+        return false;
+      }
+
+      return true;
+    }
+
+    if (!birthDate) {
+      setErrorMessage("Date of birth is required.");
+      return false;
+    }
+
+    if (!weight.trim()) {
+      setErrorMessage("Weight is required.");
+      return false;
+    }
+
+    if (!height.trim()) {
+      setErrorMessage("Height is required.");
+      return false;
+    }
+
+    return true;
+  }
 
   async function handleFinish(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -63,28 +157,7 @@ export default function Register() {
       return;
     }
 
-    if (!fullName.trim()) {
-      setErrorMessage("Full name is required.");
-      return;
-    }
-
-    if (!email.trim()) {
-      setErrorMessage("Email is required.");
-      return;
-    }
-
-    if (!password) {
-      setErrorMessage("Password is required.");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setErrorMessage("Passwords do not match.");
-      return;
-    }
-
-    if (!phoneNum.trim()) {
-      setErrorMessage("Phone number is required.");
+    if (!validateStepTwo() || !validateStepThree()) {
       return;
     }
 
@@ -114,6 +187,9 @@ export default function Register() {
         role === "doctor"
           ? {
               specialization,
+              consultation_fee: consultationFee.trim()
+                ? Number(consultationFee)
+                : null,
               license_number: licenseNumber.trim(),
               bio: bio.trim() || null,
               years_exp: yearsOE.trim() ? Number(yearsOE) : null,
@@ -290,12 +366,17 @@ export default function Register() {
                 <div className="space-y-1.5">
                   <Label>Phone number</Label>
                   <Input
-                    placeholder="+63 ..."
+                    placeholder="+63 912 345 6789"
                     value={phoneNum}
-                    onChange={(e) => setPhoneNum(e.target.value)}
+                    onChange={(e) =>
+                      setPhoneNum(formatPhoneNumber(e.target.value))
+                    }
                   />
                 </div>
               </div>
+              {errorMessage ? (
+                <p className="mt-4 text-sm text-danger">{errorMessage}</p>
+              ) : null}
               <div className="mt-6 flex gap-2">
                 <Button
                   variant="outline"
@@ -306,7 +387,12 @@ export default function Register() {
                   Back
                 </Button>
                 <Button
-                  onClick={() => setStep(3)}
+                  onClick={() => {
+                    setErrorMessage("");
+                    if (validateStepTwo()) {
+                      setStep(3);
+                    }
+                  }}
                   type="button"
                   className="flex-1 bg-primary hover:bg-primary-mid"
                 >
@@ -342,7 +428,7 @@ export default function Register() {
                         <Label>Weight (kg)</Label>
                         <Input
                           type="number"
-                          placeholder="Optional"
+                          placeholder="e.g. 65"
                           value={weight}
                           onChange={(e) => setWeight(e.target.value)}
                         />
@@ -351,14 +437,14 @@ export default function Register() {
                         <Label>Height (cm)</Label>
                         <Input
                           type="number"
-                          placeholder="Optional"
+                          placeholder="e.g. 170"
                           value={height}
                           onChange={(e) => setHeight(e.target.value)}
                         />
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label>Medical history</Label>
+                      <Label>Medical history (optional)</Label>
                       <Textarea
                         placeholder="Allergies, conditions, current medications (optional)"
                         rows={3}
@@ -378,6 +464,7 @@ export default function Register() {
                           setSpecialization(e.target.value as Specialty)
                         }
                       >
+                        <option value="">Select specialization</option>
                         {SPECIALTIES.map((s) => (
                           <option key={s.value} value={s.value}>
                             {s.label}
@@ -403,9 +490,19 @@ export default function Register() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label>Brief bio</Label>
+                      <Label>Consultation fee (₱)</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        placeholder="e.g. 800"
+                        value={consultationFee}
+                        onChange={(e) => setConsultationFee(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Brief bio (optional)</Label>
                       <Textarea
-                        placeholder="Tell patients about your approach to care."
+                        placeholder="Tell patients about your approach to care (optional)."
                         rows={4}
                         value={bio}
                         onChange={(e) => setBio(e.target.value)}
@@ -495,6 +592,78 @@ function scorePass(p: string) {
   if (/[0-9]/.test(p)) s++;
   if (/[^A-Za-z0-9]/.test(p)) s++;
   return s;
+}
+
+function isValidFullName(value: string) {
+  const cleaned = value.trim().replace(/\s+/g, " ");
+  if (cleaned.length < 2) {
+    return false;
+  }
+
+  const parts = cleaned.split(" ");
+  if (parts.length < 2) {
+    return false;
+  }
+
+  return parts.every((part) => /^[A-Za-z][A-Za-z.'-]{1,}$/.test(part));
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function getPasswordValidationError(value: string) {
+  if (value.length < 8) {
+    return "Password must be at least 8 characters long.";
+  }
+
+  if (!/[A-Z]/.test(value)) {
+    return "Password must include at least one uppercase letter.";
+  }
+
+  if (!/[a-z]/.test(value)) {
+    return "Password must include at least one lowercase letter.";
+  }
+
+  if (!/[0-9]/.test(value)) {
+    return "Password must include at least one number.";
+  }
+
+  if (!/[^A-Za-z0-9]/.test(value)) {
+    return "Password must include at least one special character.";
+  }
+
+  return null;
+}
+
+function isValidPhoneNumber(value: string) {
+  return /^\+63\s\d{3}\s\d{3}\s\d{4}$/.test(value.trim());
+}
+
+function formatPhoneNumber(value: string) {
+  let digits = value.replace(/\D/g, "");
+
+  if (digits.startsWith("63")) {
+    digits = digits.slice(2);
+  }
+
+  if (digits.startsWith("0")) {
+    digits = digits.slice(1);
+  }
+
+  digits = digits.slice(0, 10);
+
+  const p1 = digits.slice(0, 3);
+  const p2 = digits.slice(3, 6);
+  const p3 = digits.slice(6, 10);
+
+  let formatted = "+63";
+
+  if (p1) formatted += ` ${p1}`;
+  if (p2) formatted += ` ${p2}`;
+  if (p3) formatted += ` ${p3}`;
+
+  return formatted + (digits.length === 0 ? " " : "");
 }
 
 function PasswordStrength({ score }: { score: number }) {

@@ -39,12 +39,6 @@ export default function HomePage() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <Logo />
           <nav className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="text-sm font-medium text-text-secondary hover:text-text-primary"
-            >
-              Log in
-            </Link>
             <Button asChild>
               <Link href="/register">Get started</Link>
             </Button>

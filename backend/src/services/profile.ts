@@ -47,7 +47,7 @@ export async function getOwnProfile(userId: string, role: Role) {
 
   if (role === "patient") {
     const profileResult = await pool.query(
-      `SELECT date_of_birth, weight_kg, height_cm, medical_history
+      `SELECT date_of_birth::text AS date_of_birth, weight_kg, height_cm, medical_history
        FROM patient_profiles
        WHERE user_id = $1
        LIMIT 1`,
@@ -61,7 +61,7 @@ export async function getOwnProfile(userId: string, role: Role) {
   }
 
   const profileResult = await pool.query(
-    `SELECT specialization, license_number, bio, years_exp, consultation_fee::text, rating, rating_count
+    `SELECT specialization, license_number, bio, years_exp, consultation_fee::float8 AS consultation_fee, rating, rating_count
      FROM doctor_profiles
      WHERE user_id = $1
      LIMIT 1`,

@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { CalendarDays, Loader2, Plus, Save } from "lucide-react";
 
 import { EmptyState } from "@/components/shared/empty-state";
-import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,12 +54,11 @@ export default function DoctorSchedulePage() {
   const [loading, setLoading] = useState(true);
   const [savingWeekly, setSavingWeekly] = useState(false);
   const [savingBlock, setSavingBlock] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [blockDate, setBlockDate] = useState("");
   const [blockStartTime, setBlockStartTime] = useState("");
   const [blockEndTime, setBlockEndTime] = useState("");
   const [blockReason, setBlockReason] = useState("");
-  const [weeklyConfirmOpen, setWeeklyConfirmOpen] = useState(false);
-  const [blockConfirmOpen, setBlockConfirmOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -147,7 +145,6 @@ export default function DoctorSchedulePage() {
       }
       setWeekly(nextWeekly);
       setBlocks(json.data.blocks ?? []);
-      setWeeklyConfirmOpen(false);
     } catch (error) {
       alert(error instanceof Error ? error.message : "Failed to save schedule");
     } finally {
@@ -156,7 +153,7 @@ export default function DoctorSchedulePage() {
   }
 
   function requestSaveWeeklySchedule() {
-    setWeeklyConfirmOpen(true);
+    void saveWeeklySchedule();
   }
 
   async function addBlock() {
@@ -202,7 +199,6 @@ export default function DoctorSchedulePage() {
       setBlockStartTime("");
       setBlockEndTime("");
       setBlockReason("");
-      setBlockConfirmOpen(false);
     } catch (error) {
       alert(error instanceof Error ? error.message : "Failed to add block");
     } finally {
@@ -216,7 +212,7 @@ export default function DoctorSchedulePage() {
       return;
     }
 
-    setBlockConfirmOpen(true);
+    void addBlock();
   }
 
   return (
@@ -229,10 +225,21 @@ export default function DoctorSchedulePage() {
               Set the hours you are available for booking and add blocks for days off or breaks.
             </p>
           </div>
-          <Button onClick={requestSaveWeeklySchedule} disabled={savingWeekly || loading} className="bg-primary hover:bg-primary-mid">
-            {savingWeekly ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Save weekly schedule
-          </Button>
+          {!isEditing ? (
+            <Button variant="outline" onClick={() => setIsEditing(true)} disabled={loading}>
+              Edit schedule
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsEditing(false)} disabled={savingWeekly || savingBlock}>
+                Cancel
+              </Button>
+              <Button onClick={requestSaveWeeklySchedule} disabled={savingWeekly || savingBlock || loading} className="bg-primary hover:bg-primary-mid">
+                {savingWeekly ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Save Changes
+              </Button>
+            </div>
+          )}
         </div>
       </section>
 
@@ -244,6 +251,11 @@ export default function DoctorSchedulePage() {
         </div>
       ) : (
         <section className="rounded-xl border border-border bg-surface p-6 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+          {isEditing ? (
+            <div className="mb-4 rounded-xl border border-primary/20 bg-primary-light px-4 py-3 text-sm text-primary">
+              Editing mode is on. Use Save Changes to apply updates or Cancel to discard edits.
+            </div>
+          ) : null}
           <div className="grid gap-3 lg:grid-cols-2">
             {weekly.map((row) => (
               <div
@@ -258,22 +270,28 @@ export default function DoctorSchedulePage() {
                     <div className="text-sm font-medium text-text-primary">{DAYS[row.day_of_week]}</div>
                     <div className="text-xs text-text-muted">Availability for {DAYS[row.day_of_week]}</div>
                   </div>
-                  <label className="flex items-center gap-2 text-sm text-text-secondary">
-                    <input
-                      type="checkbox"
-                      checked={row.enabled}
-                      onChange={(event) =>
-                        setWeekly((current) =>
-                          current.map((entry) =>
-                            entry.day_of_week === row.day_of_week
-                              ? { ...entry, enabled: event.target.checked }
-                              : entry,
-                          ),
-                        )
-                      }
-                    />
-                    Active
-                  </label>
+                  {isEditing ? (
+                    <label className="flex items-center gap-2 text-sm text-text-secondary">
+                      <input
+                        type="checkbox"
+                        checked={row.enabled}
+                        onChange={(event) =>
+                          setWeekly((current) =>
+                            current.map((entry) =>
+                              entry.day_of_week === row.day_of_week
+                                ? { ...entry, enabled: event.target.checked }
+                                : entry,
+                            ),
+                          )
+                        }
+                      />
+                      Active
+                    </label>
+                  ) : (
+                    <span className="text-sm text-text-secondary">
+                      {row.enabled ? "Active" : "Inactive"}
+                    </span>
+                  )}
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
@@ -281,7 +299,7 @@ export default function DoctorSchedulePage() {
                     <Input
                       type="time"
                       value={row.start_time}
-                      disabled={!row.enabled}
+                      disabled={!isEditing || !row.enabled}
                       onChange={(event) =>
                         setWeekly((current) =>
                           current.map((entry) =>
@@ -298,7 +316,7 @@ export default function DoctorSchedulePage() {
                     <Input
                       type="time"
                       value={row.end_time}
-                      disabled={!row.enabled}
+                      disabled={!isEditing || !row.enabled}
                       onChange={(event) =>
                         setWeekly((current) =>
                           current.map((entry) =>
@@ -359,7 +377,12 @@ export default function DoctorSchedulePage() {
           <div className="mt-4 space-y-4">
             <div className="space-y-1.5">
               <Label>Date</Label>
-              <Input type="date" value={blockDate} onChange={(event) => setBlockDate(event.target.value)} />
+              <Input
+                type="date"
+                value={blockDate}
+                onChange={(event) => setBlockDate(event.target.value)}
+                disabled={!isEditing}
+              />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
@@ -368,6 +391,7 @@ export default function DoctorSchedulePage() {
                   type="time"
                   value={blockStartTime}
                   onChange={(event) => setBlockStartTime(event.target.value)}
+                  disabled={!isEditing}
                 />
               </div>
               <div className="space-y-1.5">
@@ -376,6 +400,7 @@ export default function DoctorSchedulePage() {
                   type="time"
                   value={blockEndTime}
                   onChange={(event) => setBlockEndTime(event.target.value)}
+                  disabled={!isEditing}
                 />
               </div>
             </div>
@@ -386,37 +411,22 @@ export default function DoctorSchedulePage() {
                 value={blockReason}
                 onChange={(event) => setBlockReason(event.target.value)}
                 placeholder="Lunch break, family emergency, clinic closure..."
+                disabled={!isEditing}
               />
             </div>
-            <Button onClick={requestAddBlock} disabled={savingBlock} className="w-full bg-primary hover:bg-primary-mid">
-              {savingBlock ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Add block
-            </Button>
+            {isEditing ? (
+              <Button onClick={requestAddBlock} disabled={savingBlock} className="w-full bg-primary hover:bg-primary-mid">
+                {savingBlock ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Add block
+              </Button>
+            ) : (
+              <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-sm text-text-secondary">
+                Switch to edit mode to add blocked times.
+              </div>
+            )}
           </div>
         </div>
       </section>
-
-      <ConfirmDialog
-        open={weeklyConfirmOpen}
-        onOpenChange={setWeeklyConfirmOpen}
-        title="Save weekly schedule?"
-        description="This will update your recurring availability for new bookings."
-        confirmLabel="Save schedule"
-        confirmingLabel="Saving..."
-        isConfirming={savingWeekly}
-        onConfirm={saveWeeklySchedule}
-      />
-
-      <ConfirmDialog
-        open={blockConfirmOpen}
-        onOpenChange={setBlockConfirmOpen}
-        title="Add this blocked time?"
-        description="This will prevent patients from booking the selected hours."
-        confirmLabel="Add block"
-        confirmingLabel="Saving..."
-        isConfirming={savingBlock}
-        onConfirm={addBlock}
-      />
     </div>
   );
 }

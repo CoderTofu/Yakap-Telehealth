@@ -8,6 +8,33 @@ import {
 } from "../services/auth";
 import { SPECIALTY_VALUES, USER_ROLES } from "../constants";
 
+function isValidFullName(value: string) {
+  const cleaned = value.trim().replace(/\s+/g, " ");
+  if (cleaned.length < 5) return false;
+  const parts = cleaned.split(" ");
+  if (parts.length < 2) return false;
+  return parts.every((part) => /^[A-Za-z][A-Za-z.'-]{1,}$/.test(part));
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function isValidPhone(value: string) {
+  return /^\+63\s9\d{2}\s\d{3}\s\d{4}$/.test(value.trim());
+}
+
+function getPasswordValidationError(value: string) {
+  if (value.length < 8) return "Password must be at least 8 characters";
+  if (!/[A-Z]/.test(value)) return "Password must include an uppercase letter";
+  if (!/[a-z]/.test(value)) return "Password must include a lowercase letter";
+  if (!/[0-9]/.test(value)) return "Password must include a number";
+  if (!/[^A-Za-z0-9]/.test(value)) {
+    return "Password must include a special character";
+  }
+  return null;
+}
+
 export async function login(req: Request, res: Response): Promise<void> {
   const { email, password } = req.body as {
     email?: string;
@@ -16,6 +43,11 @@ export async function login(req: Request, res: Response): Promise<void> {
 
   if (!email) {
     res.status(400).json({ error: { message: "Email is required" } });
+    return;
+  }
+
+  if (!isValidEmail(email)) {
+    res.status(400).json({ error: { message: "Email is invalid" } });
     return;
   }
 
@@ -87,6 +119,11 @@ export async function register(req: Request, res: Response): Promise<void> {
     return;
   }
 
+  if (!isValidEmail(email)) {
+    res.status(400).json({ error: { message: "Email is invalid" } });
+    return;
+  }
+
   const existingUser = await findUserByEmail(email);
 
   if (existingUser) {
@@ -111,13 +148,30 @@ export async function register(req: Request, res: Response): Promise<void> {
     return;
   }
 
+  const passwordError = getPasswordValidationError(password);
+
+  if (passwordError) {
+    res.status(400).json({ error: { message: passwordError } });
+    return;
+  }
+
   if (!name) {
     res.status(400).json({ error: { message: "Name is required" } });
     return;
   }
 
+  if (!isValidFullName(name)) {
+    res.status(400).json({ error: { message: "Please provide a valid full name" } });
+    return;
+  }
+
   if (!phone) {
     res.status(400).json({ error: { message: "Phone is required" } });
+    return;
+  }
+
+  if (!isValidPhone(phone)) {
+    res.status(400).json({ error: { message: "Phone must follow +63 9xx xxx xxxx" } });
     return;
   }
 

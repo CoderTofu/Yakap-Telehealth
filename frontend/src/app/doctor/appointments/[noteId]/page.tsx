@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, Save, Edit2, Trash2 } from "lucide-react";
+import { Loader2, Save, Edit2 } from "lucide-react";
 
-import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest } from "@/lib/api-client";
@@ -47,14 +46,7 @@ export default function AppointmentNotesPage() {
   const [notes, setNotes] = useState<Note[] | null>(null);
   const [appointment, setAppointment] = useState<AppointmentItem | null>(null);
   const [busy, setBusy] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<
-    | { kind: "create" }
-    | { kind: "update"; noteId: string }
-    | { kind: "delete"; noteId: string }
-    | null
-  >(null);
-
+  const [isEditing, setIsEditing] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [subjective, setSubjective] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
@@ -116,20 +108,25 @@ export default function AppointmentNotesPage() {
   const latest = notes[0] ?? null;
   const canEdit = appointment?.status === "completed";
 
-  async function handleCreate() {
+  async function handleSave() {
     setBusy(true);
     try {
       if (!canEdit) {
         throw new Error("Consultation notes can only be added to completed appointments");
       }
-      await apiRequest(`/api/v1/appointments/${appointmentId}/notes`, {
-        method: "POST",
+      const requestPath = editingNoteId
+        ? `/api/v1/appointments/${appointmentId}/notes/${editingNoteId}`
+        : `/api/v1/appointments/${appointmentId}/notes`;
+
+      await apiRequest(requestPath, {
+        method: editingNoteId ? "PATCH" : "POST",
         body: JSON.stringify({ subjective, diagnosis, prescription }),
       });
-      // reload
+
       const json = await apiRequest<{ data: Note[] }>(`/api/v1/appointments/${appointmentId}/notes`);
       setNotes(Array.isArray(json.data) ? json.data : []);
       setEditingNoteId(null);
+      setIsEditing(false);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to save note");
     } finally {
@@ -137,101 +134,43 @@ export default function AppointmentNotesPage() {
     }
   }
 
-  async function handleUpdate(noteId: string) {
-    setBusy(true);
-    try {
-      if (!canEdit) {
-        throw new Error("Consultation notes can only be edited for completed appointments");
-      }
-      await apiRequest(`/api/v1/appointments/${appointmentId}/notes/${noteId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ subjective, diagnosis, prescription }),
-      });
-      const json = await apiRequest<{ data: Note[] }>(`/api/v1/appointments/${appointmentId}/notes`);
-      setNotes(Array.isArray(json.data) ? json.data : []);
-      setEditingNoteId(null);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to update note");
-    } finally {
-      setBusy(false);
+  function beginCreate() {
+    setEditingNoteId(null);
+    setSubjective("");
+    setDiagnosis("");
+    setPrescription("");
+    setIsEditing(true);
+  }
+
+  function beginUpdate(note: Note) {
+    setEditingNoteId(note.id);
+    setSubjective(note.subjective ?? "");
+    setDiagnosis(note.diagnosis ?? "");
+    setPrescription(note.prescription ?? "");
+    setIsEditing(true);
+  }
+
+  function cancelEditing() {
+    setIsEditing(false);
+    setEditingNoteId(null);
+    if (latest) {
+      setSubjective(latest.subjective ?? "");
+      setDiagnosis(latest.diagnosis ?? "");
+      setPrescription(latest.prescription ?? "");
+    } else {
+      setSubjective("");
+      setDiagnosis("");
+      setPrescription("");
     }
   }
-
-  async function handleDelete(noteId: string) {
-    setBusy(true);
-    try {
-      if (!canEdit) {
-        throw new Error("Consultation notes can only be deleted for completed appointments");
-      }
-      await apiRequest(`/api/v1/appointments/${appointmentId}/notes/${noteId}`, {
-        method: "DELETE",
-      });
-      const json = await apiRequest<{ data: Note[] }>(`/api/v1/appointments/${appointmentId}/notes`);
-      setNotes(Array.isArray(json.data) ? json.data : []);
-      setEditingNoteId(null);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete note");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleConfirmAction() {
-    if (!pendingAction) return;
-
-    if (pendingAction.kind === "create") {
-      await handleCreate();
-    } else if (pendingAction.kind === "update") {
-      await handleUpdate(pendingAction.noteId);
-    } else if (pendingAction.kind === "delete") {
-      await handleDelete(pendingAction.noteId);
-    }
-
-    setConfirmOpen(false);
-    setPendingAction(null);
-  }
-
-  function promptCreate() {
-    setPendingAction({ kind: "create" });
-    setConfirmOpen(true);
-  }
-
-  function promptUpdate(noteId: string) {
-    setPendingAction({ kind: "update", noteId });
-    setConfirmOpen(true);
-  }
-
-  function promptDelete(noteId: string) {
-    setPendingAction({ kind: "delete", noteId });
-    setConfirmOpen(true);
-  }
-
-  const confirmTitle =
-    pendingAction?.kind === "delete"
-      ? "Delete consultation note?"
-      : pendingAction?.kind === "update"
-        ? "Save consultation note changes?"
-        : "Add consultation note?";
-
-  const confirmDescription =
-    pendingAction?.kind === "delete"
-      ? "This will permanently delete the consultation note and cannot be undone."
-      : pendingAction?.kind === "update"
-        ? "This will save the edited consultation note for the completed appointment."
-        : "This will create a consultation note for the completed appointment.";
-
-  const confirmLabel =
-    pendingAction?.kind === "delete"
-      ? "Delete Note"
-      : pendingAction?.kind === "update"
-        ? "Save"
-        : "Add Note";
-
-  const confirmingLabel =
-    pendingAction?.kind === "delete" ? "Deleting..." : "Saving...";
 
   return (
     <div className="space-y-4">
+      {isEditing ? (
+        <div className="rounded-xl border border-primary/20 bg-primary-light px-4 py-3 text-sm text-primary">
+          Editing mode is on. Use Save Changes to apply updates or Cancel to discard edits.
+        </div>
+      ) : null}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <YakapAvatar name={appointment?.patient_name ?? "Patient"} color="#0B4F71" size={48} />
@@ -251,33 +190,41 @@ export default function AppointmentNotesPage() {
           <div className="text-sm text-text-muted">
             Consultation notes can only be added after the appointment is completed. Current status: <span className="font-medium text-text-primary">{appointment?.status ?? "unknown"}</span>.
           </div>
-        ) : latest && !editingNoteId ? (
+        ) : !isEditing ? (
           <div className="space-y-4 text-sm">
-            <div>
-              <div className="text-xs uppercase tracking-wide text-text-muted">Subjective findings</div>
-              <p className="mt-1 text-text-primary">{latest.subjective ?? "-"}</p>
-            </div>
-            <div>
-              <div className="text-xs uppercase tracking-wide text-text-muted">Diagnosis</div>
-              <p className="mt-1 text-text-primary">{latest.diagnosis ?? "-"}</p>
-            </div>
-            <div>
-              <div className="text-xs uppercase tracking-wide text-text-muted">Prescription</div>
-              <p className="mt-1 text-text-primary">{latest.prescription ?? "-"}</p>
-            </div>
-            <div className="flex gap-2">
-              <Button size="sm" onClick={() => {
-                setEditingNoteId(latest.id);
-                setSubjective(latest.subjective ?? "");
-                setDiagnosis(latest.diagnosis ?? "");
-                setPrescription(latest.prescription ?? "");
-              }}>
-                <Edit2 className="h-4 w-4" /> Edit
-              </Button>
-              <Button size="sm" variant="outline" className="text-danger hover:bg-danger-light hover:text-danger" onClick={() => promptDelete(latest.id)}>
-                <Trash2 className="h-4 w-4" /> Delete
-              </Button>
-            </div>
+            {latest ? (
+              <>
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-text-muted">Subjective findings</div>
+                  <p className="mt-1 text-text-primary">{latest.subjective ?? "-"}</p>
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-text-muted">Diagnosis</div>
+                  <p className="mt-1 text-text-primary">{latest.diagnosis ?? "-"}</p>
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-text-muted">Prescription</div>
+                  <p className="mt-1 text-text-primary">{latest.prescription ?? "-"}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => beginUpdate(latest)}>
+                    <Edit2 className="h-4 w-4" /> Edit
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-medium text-text-primary">No consultation note yet</div>
+                  <p className="mt-1 text-text-secondary">
+                    Add the first note for this completed appointment.
+                  </p>
+                </div>
+                <Button size="sm" className="bg-primary hover:bg-primary-mid" disabled={!canEdit || busy} onClick={beginCreate}>
+                  <Save className="h-4 w-4" /> Add Note
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
@@ -294,50 +241,21 @@ export default function AppointmentNotesPage() {
               <Textarea value={prescription} onChange={(e) => setPrescription(e.target.value)} disabled={!canEdit} />
             </div>
             <div className="flex gap-2">
-              {editingNoteId ? (
-                <Button size="sm" className="bg-primary hover:bg-primary-mid" disabled={busy || !canEdit} onClick={() => promptUpdate(editingNoteId)}>
-                  <Save className="h-4 w-4" /> {busy ? "Saving..." : "Save"}
-                </Button>
-              ) : (
-                <Button size="sm" className="bg-primary hover:bg-primary-mid" disabled={busy || !canEdit} onClick={() => promptCreate()}>
-                  <Save className="h-4 w-4" /> {busy ? "Saving..." : "Add Note"}
-                </Button>
-              )}
-              <Button size="sm" variant="outline" onClick={() => {
-                // cancel editing or go back
-                if (editingNoteId) {
-                  setEditingNoteId(null);
-                  // restore latest values
-                  if (latest) {
-                    setSubjective(latest.subjective ?? "");
-                    setDiagnosis(latest.diagnosis ?? "");
-                    setPrescription(latest.prescription ?? "");
-                  }
-                } else {
-                  router.back();
-                }
-              }}>Cancel</Button>
+              <Button
+                size="sm"
+                className="bg-primary hover:bg-primary-mid"
+                disabled={busy || !canEdit}
+                onClick={handleSave}
+              >
+                <Save className="h-4 w-4" /> {busy ? "Saving..." : "Save Changes"}
+              </Button>
+              <Button size="sm" variant="outline" onClick={cancelEditing}>
+                Cancel
+              </Button>
             </div>
           </div>
         )}
       </div>
-
-      <ConfirmDialog
-        open={confirmOpen}
-        onOpenChange={(open) => {
-          setConfirmOpen(open);
-          if (!open) {
-            setPendingAction(null);
-          }
-        }}
-        title={confirmTitle}
-        description={confirmDescription}
-        confirmLabel={confirmLabel}
-        confirmingLabel={confirmingLabel}
-        intent={pendingAction?.kind === "delete" ? "destructive" : "default"}
-        isConfirming={busy}
-        onConfirm={handleConfirmAction}
-      />
     </div>
   );
 }

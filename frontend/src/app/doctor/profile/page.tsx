@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { YakapAvatar } from "@/components/shared/avatar";
-import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { SPECIALTIES } from "@/lib/appConfig";
 
 export default function DoctorProfile() {
@@ -19,7 +18,7 @@ export default function DoctorProfile() {
   const [yearsExp, setYearsExp] = useState<number | null>(null);
   const [fee, setFee] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     try {
@@ -29,13 +28,12 @@ export default function DoctorProfile() {
         try {
           const json = await apiRequest<{ data: any }>("/api/v1/profile/me");
           const data = json.data;
-      console.log(data)
           setUser((prev: any) => ({ ...(prev ?? {}), ...data }));
           setBio(data?.doctor_profile?.bio ?? "");
           setSpecialization(data?.doctor_profile?.specialization ?? "");
           setLicense(data?.doctor_profile?.license_number ?? "");
-          setYearsExp(data?.doctor_profile?.years_exp ?? null);
-          setFee(data?.doctor_profile?.consultation_fee ? Number(data.doctor_profile.consultation_fee) : null);
+          setYearsExp(toNullableNumber(data?.doctor_profile?.years_exp));
+          setFee(toNullableNumber(data?.doctor_profile?.consultation_fee));
         } catch (err) {
           // ignore
         }
@@ -64,8 +62,7 @@ export default function DoctorProfile() {
         body: JSON.stringify(payload),
       });
       setUser((prev: any) => ({ ...(prev ?? {}), ...json.data }));
-      alert("Profile updated");
-      setConfirmOpen(false);
+      setIsEditing(false);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to save profile");
     } finally {
@@ -75,45 +72,87 @@ export default function DoctorProfile() {
 
   return (
     <div className="mx-auto max-w-3xl">
+      {isEditing ? (
+        <div className="mb-6 rounded-xl border border-primary/20 bg-primary-light px-4 py-3 text-sm text-primary">
+          Editing mode is on. Use Save Changes to apply updates or Cancel to discard edits.
+        </div>
+      ) : null}
       <section className="rounded-xl border border-border bg-surface p-6 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-        <div className="flex items-center gap-4">
-          <div className="group relative">
-            <YakapAvatar name={user.name} color={user.avatarColor} size={80} />
-            <button className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-white opacity-0 transition-opacity hover:opacity-100">
-              <Camera className="h-5 w-5" />
-            </button>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="group relative">
+              <YakapAvatar name={user.name} color={user.avatarColor} size={80} />
+              <button className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-white opacity-0 transition-opacity hover:opacity-100">
+                <Camera className="h-5 w-5" />
+              </button>
+            </div>
+            <div>
+              <h2 className="font-serif text-2xl text-text-primary">
+                {user.name}
+              </h2>
+              <p className="text-sm text-text-secondary">{user.email}</p>
+            </div>
           </div>
-          <div>
-            <h2 className="font-serif text-2xl text-text-primary">
-              {user.name}
-            </h2>
-            <p className="text-sm text-text-secondary">{user.email}</p>
-          </div>
+          {!isEditing ? (
+            <Button variant="outline" onClick={() => setIsEditing(true)}>
+              Edit profile
+            </Button>
+          ) : null}
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label>Specialization</Label>
-            <select value={specialization ?? ""} onChange={(e) => setSpecialization(e.target.value)} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
-              <option value="">Select specialization</option>
-              {SPECIALTIES.map((s) => (
-                <option key={s.label} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
+            {isEditing ? (
+              <select
+                value={specialization ?? ""}
+                onChange={(e) => setSpecialization(e.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">Select specialization</option>
+                {SPECIALTIES.map((s) => (
+                  <option key={s.label} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <ProfileValue>
+                {specialization ? labelFromSpecialty(specialization) : "Not set"}
+              </ProfileValue>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label>License number</Label>
-            <Input value={license ?? ""} onChange={(e) => setLicense(e.target.value)} />
+            {isEditing ? (
+              <Input value={license ?? ""} onChange={(e) => setLicense(e.target.value)} />
+            ) : (
+              <ProfileValue>{license ?? "Not set"}</ProfileValue>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label>Years of experience</Label>
-            <Input type="number" value={yearsExp ?? ""} onChange={(e) => setYearsExp(Number(e.target.value))} />
+            {isEditing ? (
+              <Input
+                type="number"
+                value={yearsExp ?? ""}
+                onChange={(e) => setYearsExp(toNullableNumber(e.target.value))}
+              />
+            ) : (
+              <ProfileValue>{yearsExp ?? "Not set"}</ProfileValue>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label>Consultation fee (PHP)</Label>
-            <Input type="number" value={fee ?? ""} onChange={(e) => setFee(Number(e.target.value))} />
+            {isEditing ? (
+              <Input
+                type="number"
+                value={fee ?? ""}
+                onChange={(e) => setFee(toNullableNumber(e.target.value))}
+              />
+            ) : (
+              <ProfileValue>{fee !== null ? `₱${fee.toLocaleString()}` : "Not set"}</ProfileValue>
+            )}
           </div>
         </div>
 
@@ -122,28 +161,65 @@ export default function DoctorProfile() {
             <Label>Bio</Label>
             <span className="text-xs text-text-muted">{bio.length}/500</span>
           </div>
-          <Textarea
-            rows={5}
-            maxLength={500}
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-          />
+          {isEditing ? (
+            <Textarea
+              rows={5}
+              maxLength={500}
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+            />
+          ) : (
+            <ProfileValue>{bio?.trim() ? bio : "Not set"}</ProfileValue>
+          )}
         </div>
 
-        <Button className="mt-6 bg-primary hover:bg-primary-mid" disabled={saving} onClick={() => setConfirmOpen(true)}>
-          {saving ? "Saving..." : "Save Changes"}
-        </Button>
+        <div className="mt-6 flex gap-2">
+          {isEditing ? (
+            <>
+              <Button
+                variant="outline"
+                disabled={saving}
+                onClick={() => setIsEditing(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="bg-primary hover:bg-primary-mid"
+                disabled={saving}
+                onClick={handleSave}
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </Button>
+            </>
+          ) : null}
+        </div>
       </section>
-      <ConfirmDialog
-        open={confirmOpen}
-        onOpenChange={setConfirmOpen}
-        title="Save profile changes?"
-        description="This will update your doctor profile details for patients to see."
-        confirmLabel="Save Changes"
-        confirmingLabel="Saving..."
-        isConfirming={saving}
-        onConfirm={handleSave}
-      />
+    </div>
+  );
+}
+
+function labelFromSpecialty(value: string) {
+  return SPECIALTIES.find((s) => s.value === value)?.label ?? value;
+}
+
+function toNullableNumber(value: unknown): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const raw = String(value).trim();
+  if (!raw) {
+    return null;
+  }
+
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function ProfileValue({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-9 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-text-primary">
+      {children}
     </div>
   );
 }

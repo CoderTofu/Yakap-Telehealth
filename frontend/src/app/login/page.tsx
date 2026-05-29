@@ -46,7 +46,7 @@ export default function Login() {
       return;
     }
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL;
 
     if (!apiUrl) {
       setErrorMessage("API URL is not configured.");

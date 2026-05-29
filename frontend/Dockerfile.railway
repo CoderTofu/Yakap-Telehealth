@@ -14,6 +14,10 @@ COPY tailwind.config.ts ./
 COPY components.json ./
 COPY src ./src
 
+# Allow passing public API URL as a build-arg so Next can embed it at build-time
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
 RUN npm run build
 
 RUN mkdir -p .next/standalone/.next \
@@ -21,4 +25,5 @@ RUN mkdir -p .next/standalone/.next \
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "HOSTNAME=0.0.0.0 PORT=${PORT:-3000} node .next/standalone/server.js"]
+ENTRYPOINT ["node", ".next/standalone/server.js"]
+CMD []

@@ -106,12 +106,16 @@ How to address it:
 - Add story-driven UI review for shared components before copying behavior across roles.
 
 ## Suggested Future Improvements
-- Add a shared client state layer for notifications and unread counts.
-- Convert repeated edit/save flows into reusable form patterns.
-- Add stronger frontend and backend integration tests around appointments and notifications.
 - Harden AI response handling and error mapping.
 - Introduce shared date/time helpers for Manila-based scheduling logic.
 - Expand documentation for role-specific flows as the product grows.
+- Add real-time updates for notifications and appointment status changes using WebSockets.
+- Add location-based scheduling and timezone handling for appointments.
+- Real time chat messaging
+- Reason for appointment cancellation
+- Reason for rescheduling
+- Reason for booking an appointment
+
 
 ## Summary
 The codebase is organized cleanly and is already strong in core telehealth workflows, but the next step is to reduce duplicated UI behavior, centralize state that appears in multiple places, and strengthen the more fragile flows such as notifications, scheduling, and AI-backed suggestions.

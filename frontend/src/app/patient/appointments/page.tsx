@@ -362,7 +362,7 @@ export default function PatientAppointments() {
           </div>
         </div>
       ) : list.length === 0 ? (
-        <div className="mx-auto w-full max-w-4xl rounded-3xl border border-border bg-surface">
+        <div className="mx-auto w-full max-w-5xl rounded-3xl border border-border bg-surface">
           <EmptyState
             icon={CalendarDays}
             title={
